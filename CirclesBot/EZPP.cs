@@ -13,6 +13,12 @@ namespace CirclesBot
         public const string LibraryName = "oppai.dll";
 #endif
 
+        static EZPP()
+        {
+            if (!System.IO.File.Exists(LibraryName))
+                Logger.Log($"COULD NOT FIND OPPAI EXPECT NOTHING TO WORK : {LibraryName}", LogLevel.Error);
+        }
+
         [DllImport(LibraryName)]
         private static extern IntPtr ezpp_new();
 
