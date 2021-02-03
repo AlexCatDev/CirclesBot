@@ -34,7 +34,7 @@ namespace CirclesBot
                 embed.WithTitle("Bot Runtime Info");
                 string desc = "";
 
-                desc += "[Github Link](https://github.com/CSharpProgramming/YetAnotherBot)\n";
+                desc += "[Github Link](https://github.com/AlexCatDev/CirclesBot)\n";
 
                 desc += $"Runtime: **{runtimeVer}**\n";
                 desc += $"OS: **{RuntimeInformation.OSDescription} {RuntimeInformation.ProcessArchitecture}**\n";
