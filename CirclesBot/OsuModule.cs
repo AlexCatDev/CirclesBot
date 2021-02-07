@@ -8,6 +8,18 @@ using System.Linq;
 
 namespace CirclesBot
 {
+    /// <summary>
+    /// GIANT TODO LIST
+    /// 
+    /// 1. Make it so every score posting command adds a list rather than a single score, so it's easier for comparisons
+    /// 2. Instead of downloading every beatmap and doing pp calculations with EZPP, use /get_beatmap endpoint for getting difficulty values.
+    /// 3. Use osu!lazer pp calculator for ^
+    /// 4. Remove EZPP after ^
+    /// 5. Cleanup code
+    /// 6. Add Ripple/Akatsuki/Gatari support lowpriority
+    /// 7. Add Mania/CTB/Taiko support midpriority
+    /// </summary>
+
     public class OsuModule
     {
         //(ulong: Discord user id), (string: osu! username)
@@ -413,7 +425,7 @@ namespace CirclesBot
 
 
                     ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), ez.MaxCombo, (int)Math.Floor(estimatedCount100), 0, 0, mods);
-                    sMsg.Channel.SendMessageAsync($"FC PP with {accuracy}% and mods {mods.ToFriendlyString()} is: **{ez.PP.ToString("F2")}**");
+                    sMsg.Channel.SendMessageAsync($"`FCPP` for **{accuracy}%** and mods **{mods.ToFriendlyString()}** is: **{ez.PP.ToString("F2")}** on **{ez.SongName} [{ez.DifficultyName}]**");
                 }
                 catch (Exception ex)
                 {

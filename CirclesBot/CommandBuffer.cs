@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace CirclesBot
 {
@@ -12,6 +13,19 @@ namespace CirclesBot
         public CommandBuffer(List<string> input)
         {
             buffer = input;
+        }
+
+        public void Take(Func<string, bool> pred)
+        {
+            foreach (var str in buffer)
+            {
+                if (pred.Invoke(str))
+                {
+                    buffer.Remove(str);
+
+                    return;
+                }
+            }
         }
 
         public string GetRemaining()

@@ -9,6 +9,26 @@ using Discord.WebSocket;
 
 namespace CirclesBot
 {
+    class CallAcceptEmote : IEmote
+    {
+        public string Name => "✅";
+    }
+
+    class CallDenyEmote : IEmote
+    {
+        public string Name => "❌";
+    }
+
+    /// <summary>
+    /// TODO LIST
+    /// 
+    /// 1. Fix this stupid mess
+    /// 2. Implement interfaces and call the IModules
+    /// 3. Abstract away boilerplate code that keeps getting repeated
+    /// 4. Add Leveling system with runescape XP Curves because why not, i like runescape :)
+    /// 5. Fix Pages.cs and PagesHandler.cs mess and make them the default for sending embeds for easier use
+    /// 
+    /// </summary>
     class Program
     {
         public const ulong BotOwnerID = 591339926017146910;
@@ -24,6 +44,69 @@ namespace CirclesBot
             //"Module" Initialization
             OsuModule plugin = new OsuModule();
 
+            CommandHandler.AddCommand("Convert binary number to decimal", (sMsg, buffer) => {
+                int val = Convert.ToInt32(buffer.GetRemaining(), 2);
+                sMsg.Channel.SendMessageAsync($"**{val}**");
+                            
+            }, ">b", ">binary");
+
+            CommandHandler.AddCommand("Convert decimal number to binary", (sMsg, buffer) => {
+                string binary = Convert.ToString(int.Parse(buffer.GetRemaining()), 2);
+                sMsg.Channel.SendMessageAsync($"**{binary}**");
+
+            }, ">d", ">decimal");
+
+            CommandHandler.AddCommand("Convert binary to chars", (sMsg, buffer) => {
+                var list = new System.Collections.Generic.List<Byte>();
+                string binary = buffer.GetRemaining();
+
+                binary = binary.Replace("_", "");
+
+                for (int i = 0; i < binary.Length; i += 8)
+                {
+                    try
+                    {
+                        String t = binary.Substring(i, 8);
+
+                        list.Add(Convert.ToByte(t, 2));
+                    }
+                    catch { }
+                }
+
+                string output = System.Text.Encoding.ASCII.GetString(list.ToArray());
+
+                if(output.Contains("@everyone"))
+                    sMsg.Channel.SendMessageAsync($"no");
+                else
+                    sMsg.Channel.SendMessageAsync($"**{output}**");
+
+            }, ">charstobin", ">cbinary", ">char", ">chars", ">binarytostring", ">cb", ">string");
+
+            CommandHandler.AddCommand("Convert hex to decimal", (sMsg, buffer) => {
+                int val = Convert.ToInt32(buffer.GetRemaining(), 16);//int.Parse(buffer.GetRemaining(), NumberStyles.HexNumber | NumberStyles.AllowHexSpecifier);
+                sMsg.Channel.SendMessageAsync($"**{val}**");
+
+            }, ">h", ">hex");
+
+            CommandHandler.AddCommand("Make the bot say whatever", async (sMsg, buffer) => {
+                //bool delete = buffer.HasParameter("-d");
+
+                string msg = sMsg.Content.Remove(0, 4);
+                if (msg.Contains("@everyone"))
+                    sMsg.Channel.SendMessageAsync($"no");
+                else
+                    sMsg.Channel.SendMessageAsync($"**{msg}**");
+            }, ">say");
+
+            CommandHandler.AddCommand("ooga booga", async (sMsg, buffer) => {
+                EmbedBuilder builder = new EmbedBuilder();
+                builder.WithAuthor($"{sMsg.Author.Username} Is calling from {client.GetGuild(sMsg).Name}", $"{sMsg.Author.GetAvatarUrl()}");
+                builder.WithThumbnailUrl($"{client.GetGuild(sMsg).IconUrl}");
+                builder.Description = "Do you want to pick up??";
+
+                var msgSend = await sMsg.Channel.SendMessageAsync("", false, builder.Build());
+                msgSend.AddReactionsAsync(new IEmote[] { new CallAcceptEmote(), new CallDenyEmote() });
+            }, ">call");
 
             CommandHandler.AddCommand("Shows bot info", (sMsg, buffer) =>
             {
@@ -125,6 +208,7 @@ namespace CirclesBot
             client.Ready += () =>
             {
                 Logger.Log($"[Bot Connect]\nUser={client.CurrentUser.Username}", LogLevel.Success);
+                client.SetGameAsync(">help");
                 return Task.Delay(0);
             };
 
