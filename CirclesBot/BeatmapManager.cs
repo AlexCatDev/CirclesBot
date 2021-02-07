@@ -25,6 +25,17 @@ namespace CirclesBot
             }
         }
 
+        public static void LoadAllMaps()
+        {
+            foreach (var item in Directory.GetFiles(MapDirectory))
+            {
+                FileInfo fi = new FileInfo(item);
+                ulong id = ulong.Parse(fi.Name);
+                string bm = File.ReadAllText(item);
+                mapCache.Add(id, bm);
+            }
+        }
+
         public static string GetBeatmap(ulong id)
         {
             lock (lockObject)
@@ -58,17 +69,17 @@ namespace CirclesBot
                         });
                         Logger.Log($"\tIt took {time} milliseconds", LogLevel.Success);
 
-                        bool ranked = true;
+                        bool isRanked = true;
 
                         Logger.Log($"Checking status");
                         time =  Utils.Benchmark(() =>
                         {
                             string scores = wc.DownloadString($"https://osu.ppy.sh/beatmaps/{id}/scores");
-                            ranked = scores.Contains("\"status\":\"ranked\"");
+                            isRanked = scores.Contains("\"ranked\":1");
                         });
-                        Logger.Log($"\tIt took {time} milliseconds IsRanked: {ranked}", LogLevel.Success);
+                        Logger.Log($"\tIt took {time} milliseconds IsRanked: {isRanked}", LogLevel.Success);
 
-                        if (ranked)
+                        if (isRanked)
                         {
                             string filename = $"{id}";
 

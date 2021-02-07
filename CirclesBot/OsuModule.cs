@@ -595,6 +595,27 @@ namespace CirclesBot
                     sMsg.Channel.SendMessageAsync("Atleast type something like... i dunno? Your fucking osu! username?");
                 }
             }, ">osuset", ">set");
+
+            CommandHandler.AddCommand("debug2", async (sMsg, buffer) =>
+            {
+                if(sMsg.Author.Id == Program.BotOwnerID)
+                {
+                    await sMsg.Channel.SendMessageAsync("Scraping has begun!");
+                    int before = BeatmapManager.CachedMapCount;
+                    for (int i = 0; i < 30; i++)
+                    {
+                        int user_id = Utils.GetRandomNumber(10, 10000000);
+                        var kek = banchoAPI.GetBestPlays(user_id, 100);
+                        foreach (var item in kek)
+                        {
+                            BeatmapManager.GetBeatmap(item.BeatmapID);
+                        }
+                    }
+                    int after = BeatmapManager.CachedMapCount;
+                    await sMsg.Channel.SendMessageAsync($"Scraping is done: scraped beatmaps_count: {after - before}");
+
+                }
+            }, ">scrape");
         }
     }
 }

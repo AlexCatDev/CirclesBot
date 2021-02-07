@@ -51,6 +51,16 @@ namespace CirclesBot
             }
         }
 
+        public List<BanchoBestScore> GetBestPlays(int id, int limit = 100)
+        {
+            using (WebClient wc = new WebClient())
+            {
+                TotalAPICalls++;
+                string json = wc.DownloadString($"https://osu.ppy.sh/api/get_user_best?k={apiKey}&u={id}&m=0&limit={limit}&type=id");
+                return JsonConvert.DeserializeObject<List<BanchoBestScore>>(json);
+            }
+        }
+
         public List<BanchoScore> GetScores(string username, ulong beatmapID, int limit = 10)
         {
             using (WebClient wc = new WebClient())

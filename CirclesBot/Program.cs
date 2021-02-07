@@ -50,6 +50,17 @@ namespace CirclesBot
                             
             }, ">b", ">binary");
 
+            CommandHandler.AddCommand("debug", (sMsg, buffer) => {
+                if (sMsg.Author.Id == BotOwnerID)
+                {
+                    int time = Utils.Benchmark(() =>
+                    {
+                        BeatmapManager.LoadAllMaps();
+                    });
+                    Logger.Log($"Loaded all maps and it took: {time} milliseconds", LogLevel.Success);
+                }
+            }, ">load", ">stress");
+
             CommandHandler.AddCommand("Convert decimal number to binary", (sMsg, buffer) => {
                 string binary = Convert.ToString(int.Parse(buffer.GetRemaining()), 2);
                 sMsg.Channel.SendMessageAsync($"**{binary}**");
@@ -122,6 +133,8 @@ namespace CirclesBot
                 desc += $"Runtime: **{runtimeVer}**\n";
                 desc += $"OS: **{RuntimeInformation.OSDescription} {RuntimeInformation.ProcessArchitecture}**\n";
                 desc += $"CPU Cores: **{Environment.ProcessorCount}**\n";
+                desc += $"Ram Usage: **{(Process.GetCurrentProcess().PrivateMemorySize64 / 1048576.0).ToString("F")} MB**\n";
+                desc += $"GC: **0:** `{GC.CollectionCount(0)}` **1:** `{GC.CollectionCount(1)}` **2:** `{GC.CollectionCount(2)}`\n";
                 desc += $"Oppai Version: **{EZPP.GetVersion()}**\n";
                 desc += $"Ping: **{client.Latency} MS**\n";
                 desc += $"Cached Beatmaps: **{BeatmapManager.CachedMapCount}**\n";
@@ -179,8 +192,25 @@ namespace CirclesBot
             }, ">help");
 
 
+            string[] randomQuirkyResponses = new string[] {
+                "I agree!", "Thats stupid", "Please tell us more",
+                "I sense a lie", "The person above me is speaking straight facts",
+                "No cap", "Haha", "Funny", "Error", "True", ":sunglasses:",
+                "This is not true", "I laughed", /*"What did the cat say to the mouse?\n||Nothing cats can't speak. Idiot||",*/
+                //Low effort
+                "727", "dab", "kappa", "lol", "lmao", "owo", "uwu", "yep", "cool", "nice play", "nice cock",
+                "i rate 1/10", "i rate 2/10", "i rate 3/10","i rate 4/10","i rate 5/10","i rate 6/10","i rate 7/10", "i rate 8/10", "i rate 9/10", "i rate 10/10",
+                "you lost", "cock", "penis", "bye", "hello", "calm down", "it burns", "for real tho", "bro", "i guess",
+                ":(", ":)", ":D", ":-)", ":-(", "D:", ";(", ";)", ":o", ":O", ">:O", ":c", "c:", "<3", "</3"
+            };
+
             client.MessageReceived += (s) =>
             {
+                if(Utils.GetRandomNumber(1, 100) == 50)
+                {
+                    s.Channel.SendMessageAsync(randomQuirkyResponses[Utils.GetRandomNumber(0, randomQuirkyResponses.Length - 1)]);
+                }
+
                 if (s.Content.ToLower() == "::kys" && s.Author.Id == BotOwnerID)
                 {
                     s.Channel.SendMessageAsync("Okay kammerat :ok_hand:").GetAwaiter().GetResult();
