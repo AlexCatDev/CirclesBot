@@ -1,4 +1,6 @@
 ﻿using Discord;
+using Discord.Rest;
+using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,19 +23,29 @@ namespace CirclesBot
             public string Name => "❌";
         }
 
+        class CallObject
+        {
+            public ulong Callee;
+            public ulong Receiver;
+
+            public bool CallAccepted = false;
+        }
+
+        private List<CallObject> activeCalls = new List<CallObject>();
+
         public MiscModule()
         {
             Commands.Add(new Command("Convert decimal number to binary", (sMsg, buffer) => {
                 string binary = Convert.ToString(int.Parse(buffer.GetRemaining()), 2);
                 sMsg.Channel.SendMessageAsync($"**{binary}**");
 
-            }, ">d", ">decimal"));
+            }, ">d", ">decimaltobinary", ">dtb"));
 
             Commands.Add(new Command("Convert binary number to decimal", (sMsg, buffer) => {
                 int val = Convert.ToInt32(buffer.GetRemaining(), 2);
                 sMsg.Channel.SendMessageAsync($"**{val}**");
 
-            }, ">b", ">binary"));
+            }, ">b", ">binarytodecimal", ">btd"));
 
             Commands.Add(new Command("Convert binary to chars", (sMsg, buffer) => {
                 var list = new System.Collections.Generic.List<Byte>();
@@ -59,7 +71,7 @@ namespace CirclesBot
                 else
                     sMsg.Channel.SendMessageAsync($"**{output}**");
 
-            }, ">charstobin", ">cbinary", ">char", ">chars", ">binarytostring", ">cb", ">string"));
+            }, ">char", ">chars", ">string"));
 
             Commands.Add(new Command("Convert hex to decimal", (sMsg, buffer) => {
                 int val = Convert.ToInt32(buffer.GetRemaining(), 16);//int.Parse(buffer.GetRemaining(), NumberStyles.HexNumber | NumberStyles.AllowHexSpecifier);
@@ -67,7 +79,7 @@ namespace CirclesBot
 
             }, ">h", ">hex"));
 
-            Commands.Add(new Command("Make the bot say whatever", async (sMsg, buffer) => {
+            Commands.Add(new Command("Make the bot say something", (sMsg, buffer) => {
                 //bool delete = buffer.HasParameter("-d");
 
                 string msg = sMsg.Content.Remove(0, 4);
@@ -77,15 +89,82 @@ namespace CirclesBot
                     sMsg.Channel.SendMessageAsync($"**{msg}**");
             }, ">say"));
 
-            Commands.Add(new Command("ooga booga", async (sMsg, buffer) => {
-                EmbedBuilder builder = new EmbedBuilder();
-                builder.WithAuthor($"{sMsg.Author.Username} Is calling from {Program.Client.GetGuild(sMsg).Name}", $"{sMsg.Author.GetAvatarUrl()}");
-                builder.WithThumbnailUrl($"{Program.Client.GetGuild(sMsg).IconUrl}");
-                builder.Description = "Do you want to pick up??";
+            Commands.Add(new Command("Call another server lol", async (sMsg, buffer) => {
+                string message = buffer.GetRemaining().Replace("_"," ");
 
-                var msgSend = await sMsg.Channel.SendMessageAsync("", false, builder.Build());
-                await msgSend.AddReactionsAsync(new IEmote[] { new CallAcceptEmote(), new CallDenyEmote() });
+                CallObject activeCall1 = activeCalls.Find((o) => o.Callee == sMsg.Channel.Id);
+                CallObject activeCall2 = activeCalls.Find((o) => o.Receiver == sMsg.Channel.Id);
+                if (activeCall1 == null && activeCall2 == null)
+                {
+                    EmbedBuilder builder = new EmbedBuilder();
+                    SocketGuild guildToCall = Program.Client.Guilds.ElementAt(Utils.GetRandomNumber(0, Program.Client.Guilds.Count - 1));
+                    builder.WithAuthor($"{sMsg.Author.Username} Is calling from {Program.Client.GetGuild(sMsg).Name}", $"{sMsg.Author.GetAvatarUrl()}");
+                    builder.WithThumbnailUrl($"{Program.Client.GetGuild(sMsg).IconUrl}");
+                    builder.Description = $"With the following message: **{message}**\nDo you want to pick up??";
+                    try
+                    {
+                        await sMsg.Channel.SendMessageAsync("Found a server! Waiting for someone to respond...");
+
+                        var msgSend = await guildToCall.SystemChannel.SendMessageAsync("", false, builder.Build());
+
+                        activeCalls.Add(new CallObject() { Callee = sMsg.Channel.Id, Receiver = msgSend.Channel.Id });
+
+                        await msgSend.AddReactionsAsync(new IEmote[] { new CallAcceptEmote(), new CallDenyEmote() });
+                    }
+                    catch { await sMsg.Channel.SendMessageAsync("Error lol sad"); }
+                }
+                else
+                {
+                    await sMsg.Channel.SendMessageAsync("A call is already active");
+                }
             }, ">call"));
+
+            Program.Client.ReactionAdded += async (s, e, x) =>
+            {
+                if (!x.User.Value.IsBot)
+                {
+                    var msg = await s.GetOrDownloadAsync();
+                    CallObject activeCall = activeCalls.Find((o) => o.Receiver == msg.Channel.Id);
+                    if (activeCall != null)
+                    {
+                        if (x.Emote.Name == new CallAcceptEmote().Name)
+                        {
+                            activeCall.CallAccepted = true;
+                            await (Program.Client.GetChannel(activeCall.Receiver) as IMessageChannel).SendMessageAsync("You have accepted the call now talk!");
+                            await (Program.Client.GetChannel(activeCall.Callee) as IMessageChannel).SendMessageAsync("The other party has accepted!");
+                        }
+                        else
+                        {
+                            activeCalls.Remove(activeCall);
+                            await (Program.Client.GetChannel(activeCall.Receiver) as IMessageChannel).SendMessageAsync("You have closed the call!");
+                            await (Program.Client.GetChannel(activeCall.Callee) as IMessageChannel).SendMessageAsync("The other party closed the call!");
+                        }
+                    }
+                    //return Task.Delay(0);
+                }
+            };
+
+            Program.Client.MessageReceived += (s) =>
+            {
+                if (s.Author.IsBot)
+                    return Task.Delay(0);
+
+                CallObject toSend = activeCalls.Find((o) => o.Receiver == s.Channel.Id);
+                CallObject toReceive = activeCalls.Find((o) => o.Callee == s.Channel.Id);
+
+                if (toSend != null)
+                {
+                    if(toSend.CallAccepted)
+                    (Program.Client.GetChannel(toSend.Callee) as IMessageChannel).SendMessageAsync($":speech_balloon: **{s.Content}**");
+                }
+
+                if(toReceive != null)
+                {
+                    if (toReceive.CallAccepted)
+                        (Program.Client.GetChannel(toReceive.Receiver) as IMessageChannel).SendMessageAsync($":speech_balloon: **{s.Content}**");
+                }
+                return Task.Delay(0);
+            };
         }
     }
 }

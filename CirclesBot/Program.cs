@@ -14,7 +14,7 @@ namespace CirclesBot
     /// TODO LIST
     /// 
     /// 1. Fix this stupid mess
-    /// 2. Implement interfaces and call the IModules
+    /// 2. Implement interfaces and call the IModules - Kinda done
     /// 3. Abstract away boilerplate code that keeps getting repeated
     /// 4. Add Leveling system with runescape XP Curves because why not, i like runescape :)
     /// 5. Fix Pages.cs and PagesHandler.cs mess and make them the default for sending embeds for easier use
@@ -68,7 +68,7 @@ namespace CirclesBot
                 desc += $"Guilds: **{Client.Guilds.Count}**\n";
                 desc += $"TotalMembers: **{TotalMemberCount}**\n";
                 desc += $"Beatmaps In Memory: **{BeatmapManager.CachedMapCount}**\n";
-                desc += $"Modules: **{Program.LoadedModules.Count}**\n";
+                desc += $"Modules: **{LoadedModules.Count}**\n";
 
                 embed.WithDescription(desc);
                 embed.WithColor(Color.Blue);
@@ -153,7 +153,7 @@ namespace CirclesBot
                     {
                         if (type.IsAssignableTo(typeof(Module)))
                         {
-                            Logger.Log($"Found module: {type.Name}", LogLevel.Info);
+                            Logger.Log($"Found module: {type.Name}");
                             Module loadedModule = (Module)Activator.CreateInstance(type);
                             LoadedModules.Add(loadedModule);
                             Logger.Log($"Loaded module: {type.Name}", LogLevel.Success);
@@ -172,9 +172,9 @@ namespace CirclesBot
                     s.Channel.SendMessageAsync(RandomQuirkyResponses[Utils.GetRandomNumber(0, RandomQuirkyResponses.Length - 1)]);
                 }
 
-                if (s.Content.ToLower() == "::kys" && s.Author.Id == BotOwnerID)
+                if (s.Content.ToLower() == ">die" && s.Author.Id == BotOwnerID)
                 {
-                    s.Channel.SendMessageAsync("Okay kammerat :ok_hand:").GetAwaiter().GetResult();
+                    s.Channel.SendMessageAsync("ok i die").GetAwaiter().GetResult();
                     signalKill = true;
                     return Task.Delay(0);
                 }

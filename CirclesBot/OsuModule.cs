@@ -22,7 +22,7 @@ namespace CirclesBot
 
     public class OsuModule : Module
     {
-        public override string Name => "osu!Module";
+        public override string Name => "osu! Module";
 
         //(ulong: Discord user id), (string: osu! username)
         private Dictionary<ulong, string> discordUserToOsuUser = new Dictionary<ulong, string>();

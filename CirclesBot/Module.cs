@@ -30,7 +30,7 @@ namespace CirclesBot
 
             string trigger = args[0];
 
-            var cmd = Triggers.Find(triggerInList => triggerInList.Contains(trigger));
+            var cmd = Triggers.Find(triggerInList => triggerInList == trigger);
             if (cmd != null)
             {
                 args.RemoveAt(0);
