@@ -19,12 +19,26 @@ namespace CirclesBot
         public int Capabilities;
     }
 
+    public class Badge
+    {
+        public string Name;
+        public string Icon;
+    }
+
     public class DiscordProfile
     {
+        public int HPLevel = 10;
+        public int HP = 10;
+        public int AttackLevel = 1;
+        public int StrengthLevel = 1;
+        public int DefenceLevel = 1;
+        public List<Item> EquipedItems = new List<Item>();
+
         public ulong XP = 0;
         public int Level => XPToLevel(XP) - 1;
         public ulong MessagesSent = 0;
         public List<Item> Inventory = new List<Item>();
+        public List<Badge> Badges = new List<Badge>();
         public string OsuUsername = "";
 
 
@@ -63,21 +77,23 @@ namespace CirclesBot
 
         private Dictionary<ulong, DiscordProfile> discordProfiles = new Dictionary<ulong, DiscordProfile>();
 
+        public int ProfileCount => discordProfiles.Count;
+
         public const string DiscordProfileDirectory = "./Profiles";
 
-        private DiscordProfile GetProfile(ulong discordID)
+        public void GetProfile(ulong discordID, Action<DiscordProfile> modifyAction)
         {
-            if(discordProfiles.TryGetValue(discordID, out DiscordProfile profile))
+            DiscordProfile profile;
+
+            if(!discordProfiles.TryGetValue(discordID, out profile))
             {
-                File.WriteAllText($"{DiscordProfileDirectory}/{discordID}",JsonConvert.SerializeObject(profile));
-                return profile;
+                profile = new DiscordProfile();
+                discordProfiles.Add(discordID, profile);
             }
-            else
-            {
-                DiscordProfile newProfile = new DiscordProfile();
-                discordProfiles.Add(discordID, newProfile);
-                return newProfile;
-            }
+
+            modifyAction?.Invoke(profile);
+
+            File.WriteAllText($"{DiscordProfileDirectory}/{discordID}", JsonConvert.SerializeObject(profile));
         }
 
         public SocialModule()
@@ -102,7 +118,7 @@ namespace CirclesBot
                     }
                 });
 
-                Logger.Log($"Loaded: {discordProfiles.Count} profiles it took {time} milliseconds");
+                Logger.Log($"Loaded {discordProfiles.Count} profiles it took {time} milliseconds");
             }
             Commands.Add(new Command("View your inventory", (sMsg, buffer) => { 
                 
@@ -111,47 +127,79 @@ namespace CirclesBot
             }, ">inventory", ">inv"));
 
             Commands.Add(new Command("View your profile", (sMsg, buffer) => {
-                DiscordProfile profile = GetProfile(sMsg.Author.Id);
+                Discord.WebSocket.SocketUser userToCheck;
+
+                if (sMsg.MentionedUsers.Count > 0)
+                    userToCheck = sMsg.MentionedUsers.First();
+                else
+                    userToCheck = sMsg.Author;
+
 
                 EmbedBuilder builder = new EmbedBuilder();
-                builder.WithAuthor($"Profile for {sMsg.Author.Username}", sMsg.Author.GetAvatarUrl());
+                builder.WithAuthor($"Profile for {userToCheck.Username}", userToCheck.GetAvatarUrl());
 
-                foreach (var field in profile.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic))
+                GetProfile(userToCheck.Id, (profile) =>
                 {
-                    try
+                    foreach (var field in profile.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic))
                     {
-                        //Console.WriteLine($"{field.Name}");
-                        builder.Description += $"`{field.Name}:` **{field.GetValue(profile)?.ToString() ?? "null"}**\n";
+                        try
+                        {
+                            //Console.WriteLine($"{field.Name}");
+                            builder.Description += $"`{field.Name}:` **{field.GetValue(profile)?.ToString() ?? "null"}**\n";
+                        }
+                        catch (Exception e) { /*Console.WriteLine(e.Message);*/ }
                     }
-                    catch (Exception e) { /*Console.WriteLine(e.Message);*/ }
-                }
 
-                foreach (var property in profile.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic))
-                {
-                    try
+                    foreach (var property in profile.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic))
                     {
-                        //Console.WriteLine($"{field.Name}");
-                        builder.Description += $"`{property.Name}:` **{property.GetValue(profile)?.ToString() ?? "null"}**\n";
+                        try
+                        {
+                            //Console.WriteLine($"{field.Name}");
+                            builder.Description += $"`{property.Name}:` **{property.GetValue(profile)?.ToString() ?? "null"}**\n";
+                        }
+                        catch (Exception e) { /*Console.WriteLine(e.Message);*/ }
                     }
-                    catch (Exception e) { /*Console.WriteLine(e.Message);*/ }
-                }
+                });
+
+                if (userToCheck.Id == Program.BotOwnerID)
+                    builder.Description += $":star: Owner";
+
                 sMsg.Channel.SendMessageAsync("", false, builder.Build());
             }, ">profile", ">pf"));
 
             Commands.Add(new Command("Gives you the desired item", (sMsg, buffer) => {
                 string item = buffer.GetRemaining();
-                GetProfile(sMsg.Author.Id).Inventory.Add(new Item() { Name = item, Capabilities = 69, 
-                    Description = "A item", EmojiName = ":flushed:"});
-                sMsg.Channel.SendMessageAsync($"Gave u item: {item}");
+                if (sMsg.Author.Id == Program.BotOwnerID)
+                {
+                    GetProfile(sMsg.Author.Id, (profile) =>
+                    {
+                        profile.Inventory.Add(new Item()
+                        {
+                            Name = item,
+                            Capabilities = 69,
+                            Description = "A item",
+                            EmojiName = ":flushed:"
+                        });
+                    });
+
+                    sMsg.Channel.SendMessageAsync($"Gave u item: {item}");
+                }
+                else
+                {
+                    sMsg.Channel.SendMessageAsync("no");
+                }
             }, ">giveitem"));
 
             Program.Client.MessageReceived += (s) =>
             {
                 if (!s.Author.IsBot)
                 {
-                    GetProfile(s.Author.Id).MessagesSent++;
-                    //200 to 4000 xp per message
-                    GetProfile(s.Author.Id).XP += (ulong)Utils.GetRandomNumber(1, 68);
+                    GetProfile(s.Author.Id, (profile) =>
+                    {
+                        profile.MessagesSent++;
+                        //1 to 68 xp per message
+                        profile.XP += (ulong)Utils.GetRandomNumber(1, 68);
+                    });
                 }
 
                 return Task.Delay(0);
@@ -160,7 +208,7 @@ namespace CirclesBot
             Program.Client.UserJoined += (s) =>
             {
                 if (!s.IsBot)
-                    GetProfile(s.Id);
+                    GetProfile(s.Id, null);
 
                 return Task.Delay(0);
             };
@@ -170,7 +218,7 @@ namespace CirclesBot
                 foreach (var user in s.Users)
                 {
                     if (!user.IsBot)
-                        GetProfile(user.Id);
+                        GetProfile(user.Id, null);
                 }
                 Console.WriteLine(s.Users.Count);
 

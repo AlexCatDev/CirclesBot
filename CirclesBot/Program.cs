@@ -44,6 +44,17 @@ namespace CirclesBot
 
         public static List<Module> LoadedModules = new List<Module>();
 
+        public static T GetModule<T>() where T : Module
+        {
+            foreach (var module in LoadedModules)
+            {
+                if (module is T t)
+                    return t;
+            }
+
+            return null;
+        }
+
         public Program()
         {
             Commands.Add(new Command("Enable a command", (sMsg, buffer) => {

@@ -24,9 +24,6 @@ namespace CirclesBot
     {
         public override string Name => "osu! Module";
 
-        //(ulong: Discord user id), (string: osu! username)
-        private Dictionary<ulong, string> discordUserToOsuUser = new Dictionary<ulong, string>();
-
         //(ulong: Discord channel id), (ulong: osu! beatmap id)
         private Dictionary<ulong, ulong> discordChannelToBeatmap = new Dictionary<ulong, ulong>();
 
@@ -114,17 +111,6 @@ namespace CirclesBot
             
             banchoAPI = new BanchoAPI(Credentials.OSU_API_KEY);
 
-            if (File.Exists("./OsuUsers"))
-            {
-                discordUserToOsuUser = JsonConvert.DeserializeObject<Dictionary<ulong, string>>(File.ReadAllText("./OsuUsers"));
-
-                Logger.Log($"Added: {discordUserToOsuUser.Count} osu! users to the dictionary", LogLevel.Info);
-            }
-            else
-            {
-                Logger.Log($"Couldn't find a OsuUsers file!", LogLevel.Warning);
-            }
-
             //Optimized
             Commands.Add(new Command("Shows recent plays for user", (sMsg, buffer) =>
             {
@@ -134,7 +120,11 @@ namespace CirclesBot
                 
                 if (sMsg.MentionedUsers.Count > 0)
                 {
-                    if(!discordUserToOsuUser.TryGetValue(sMsg.MentionedUsers.First().Id, out userToCheck))
+                    Program.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id, profile => {
+                        userToCheck = profile.OsuUsername;
+                    });
+
+                    if (userToCheck == "")
                     {
                         sMsg.Channel.SendMessageAsync("That person has not linked their osu! account.");
                         return;
@@ -148,7 +138,11 @@ namespace CirclesBot
 
                 if (userToCheck == "")
                 {
-                    if (!discordUserToOsuUser.TryGetValue(sMsg.Author.Id, out userToCheck))
+                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
+                        userToCheck = profile.OsuUsername;
+                    });
+
+                    if (userToCheck == "")
                     {
                         sMsg.Channel.SendMessageAsync("Please mention someone, use their username or set your own with **>osuset <username>**");
                         return;
@@ -203,7 +197,11 @@ namespace CirclesBot
 
                 if (sMsg.MentionedUsers.Count > 0)
                 {
-                    if (!discordUserToOsuUser.TryGetValue(sMsg.MentionedUsers.First().Id, out userToCheck))
+                    Program.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id, profile => {
+                        userToCheck = profile.OsuUsername;
+                    });
+
+                    if (userToCheck == "")
                     {
                         sMsg.Channel.SendMessageAsync("That person has not linked their osu! account.");
                         return;
@@ -231,7 +229,11 @@ namespace CirclesBot
 
                 if (userToCheck == "")
                 {
-                    if (!discordUserToOsuUser.TryGetValue(sMsg.Author.Id, out userToCheck))
+                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
+                        userToCheck = profile.OsuUsername;
+                    });
+
+                    if (userToCheck == "")
                     {
                         sMsg.Channel.SendMessageAsync("Please mention someone, use their username or set your own with **>osuset <username>**");
                         return;
@@ -285,7 +287,11 @@ namespace CirclesBot
 
                 if (sMsg.MentionedUsers.Count > 0)
                 {
-                    if (!discordUserToOsuUser.TryGetValue(sMsg.MentionedUsers.First().Id, out userToCheck))
+                    Program.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id, profile => {
+                        userToCheck = profile.OsuUsername;
+                    });
+
+                    if (userToCheck == "")
                     {
                         sMsg.Channel.SendMessageAsync("That person has not linked their osu! account.");
                         return;
@@ -301,7 +307,11 @@ namespace CirclesBot
 
                 if (userToCheck == "")
                 {
-                    if (!discordUserToOsuUser.TryGetValue(sMsg.Author.Id, out userToCheck))
+                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
+                        userToCheck = profile.OsuUsername;
+                    });
+
+                    if (userToCheck == "")
                     {
                         sMsg.Channel.SendMessageAsync("Please mention someone, use their username or set your own with **>osuset <username>**");
                         return;
@@ -464,7 +474,11 @@ namespace CirclesBot
 
                 if (sMsg.MentionedUsers.Count > 0)
                 {
-                    if (!discordUserToOsuUser.TryGetValue(sMsg.MentionedUsers.First().Id, out userToCheck))
+                    Program.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id, profile => {
+                        userToCheck = profile.OsuUsername;
+                    });
+
+                    if (userToCheck == "")
                     {
                         sMsg.Channel.SendMessageAsync("That person has not linked their osu! account.");
                         return;
@@ -500,7 +514,11 @@ namespace CirclesBot
 
                 if (userToCheck == "")
                 {
-                    if (!discordUserToOsuUser.TryGetValue(sMsg.Author.Id, out userToCheck))
+                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
+                        userToCheck = profile.OsuUsername;
+                    });
+
+                    if (userToCheck == "")
                     {
                         sMsg.Channel.SendMessageAsync("Please mention someone, use their username or set your own with **>osuset <username>**");
                         return;
@@ -552,7 +570,11 @@ namespace CirclesBot
 
                 if (sMsg.MentionedUsers.Count > 0)
                 {
-                    if (!discordUserToOsuUser.TryGetValue(sMsg.MentionedUsers.First().Id, out userToCheck))
+                    Program.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id, profile => {
+                        userToCheck = profile.OsuUsername;
+                    });
+
+                    if (userToCheck == "")
                     {
                         sMsg.Channel.SendMessageAsync("That person has not linked their osu! account.");
                         return;
@@ -566,7 +588,11 @@ namespace CirclesBot
 
                 if (userToCheck == "")
                 {
-                    if (!discordUserToOsuUser.TryGetValue(sMsg.Author.Id, out userToCheck))
+                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
+                        userToCheck = profile.OsuUsername;
+                    });
+
+                    if (userToCheck == "")
                     {
                         sMsg.Channel.SendMessageAsync("Please mention someone, use their username or set your own with **>osuset <username>**");
                         return;
@@ -600,7 +626,9 @@ namespace CirclesBot
                 string[] user = sMsg.Content.Split(' ');
                 if (user.Length > 1)
                 {
-                    discordUserToOsuUser.AddAndSave(sMsg.Author.Id, user[1], "./OsuUsers");
+                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
+                        profile.OsuUsername = user[1];
+                    });
 
                     sMsg.Channel.SendMessageAsync("Your osu user has been set to: " + user[1]);
                 }

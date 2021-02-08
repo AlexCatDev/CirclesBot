@@ -67,22 +67,6 @@ namespace CirclesBot
             }
         }
 
-        public static void AddAndSave(this Dictionary<ulong, string> dict, ulong key, string value, string savePath)
-        {
-            if (dict.ContainsKey(key))
-            {
-                dict[key] = value;
-            }
-            else
-            {
-                dict.Add(key, value);
-            }
-
-            string json = JsonConvert.SerializeObject(dict);
-
-            File.WriteAllText(savePath, json);
-        }
-
         public static int Benchmark(Action a)
         {
             Stopwatch sw = Stopwatch.StartNew();
