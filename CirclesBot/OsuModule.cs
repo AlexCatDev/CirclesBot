@@ -20,8 +20,10 @@ namespace CirclesBot
     /// 7. Add Mania/CTB/Taiko support midpriority
     /// </summary>
 
-    public class OsuModule
+    public class OsuModule : Module
     {
+        public override string Name => "osu!Module";
+
         //(ulong: Discord user id), (string: osu! username)
         private Dictionary<ulong, string> discordUserToOsuUser = new Dictionary<ulong, string>();
 
@@ -64,7 +66,7 @@ namespace CirclesBot
 
                 temp += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]";
 
-                if (Utils.GetRandomDouble() < .01)
+                if (Utils.GetRandomChance(1))
                     temp += ":tada:";
 
                 temp += "\n";
@@ -102,17 +104,14 @@ namespace CirclesBot
             return embedBuilder;
         }
 
-
-        /// <summary>
-        /// TODO: Format PP and Acc with {0:.00}, always show two decimal places..
-        /// </summary>
         public OsuModule()
         {
+            
             int time = Utils.Benchmark(() => {
                 BeatmapManager.LoadAllMaps();
             });
             Logger.Log($"Loaded {BeatmapManager.CachedMapCount} local beatmaps it took {time} milliseconds", LogLevel.Success);
-
+            
             banchoAPI = new BanchoAPI(Credentials.OSU_API_KEY);
 
             if (File.Exists("./OsuUsers"))
@@ -127,7 +126,7 @@ namespace CirclesBot
             }
 
             //Optimized
-            CommandHandler.AddCommand("Shows recent plays for user", (sMsg, buffer) =>
+            Commands.Add(new Command("Shows recent plays for user", (sMsg, buffer) =>
             {
                 Stopwatch sw = Stopwatch.StartNew();
 
@@ -193,10 +192,10 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">rs", ">recent");
+            }, ">rs", ">recent"));
 
 
-            CommandHandler.AddCommand("Shows user plays on a specific map", (sMsg, buffer) =>
+            Commands.Add(new Command("Shows user plays on a specific map", (sMsg, buffer) =>
             {
                 Stopwatch sw = Stopwatch.StartNew();
 
@@ -276,9 +275,9 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">scores", ">sc");
+            }, ">scores", ">sc"));
 
-            CommandHandler.AddCommand("Shows top plays for user", (sMsg, buffer) =>
+            Commands.Add(new Command("Shows top plays for user", (sMsg, buffer) =>
             {
                 Stopwatch sw = Stopwatch.StartNew();
 
@@ -356,9 +355,9 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">top", ">osutop");
+            }, ">top", ">osutop"));
 
-            CommandHandler.AddCommand("Get PP For fc", (sMsg, buffer) =>
+            Commands.Add(new Command("Get PP For fc", (sMsg, buffer) =>
             {
                 buffer.Discard("%");
 
@@ -448,9 +447,9 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">pp", ">fc");
+            }, ">pp", ">fc"));
 
-            CommandHandler.AddCommand("Compares plays for user", (sMsg, buffer) =>
+            Commands.Add(new Command("Compares plays for user", (sMsg, buffer) =>
             {
                 string userToCheck = "";
 
@@ -545,9 +544,9 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">c", ">compare");
+            }, ">c", ">compare"));
 
-            CommandHandler.AddCommand("Shows your osu profile or someone elses", (sMsg, buffer) =>
+            Commands.Add(new Command("Shows your osu profile or someone elses", (sMsg, buffer) =>
             {
                 string userToCheck = "";
 
@@ -593,10 +592,10 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">osu", ">profile");
+            }, ">osu", ">profile"));
 
 
-            CommandHandler.AddCommand("Sets your osu user", (sMsg, buffer) =>
+            Commands.Add(new Command("Sets your osu user", (sMsg, buffer) =>
             {
                 string[] user = sMsg.Content.Split(' ');
                 if (user.Length > 1)
@@ -609,28 +608,7 @@ namespace CirclesBot
                 {
                     sMsg.Channel.SendMessageAsync("Atleast type something like... i dunno? Your fucking osu! username?");
                 }
-            }, ">osuset", ">set");
-
-            CommandHandler.AddCommand("debug2", async (sMsg, buffer) =>
-            {
-                if(sMsg.Author.Id == Program.BotOwnerID)
-                {
-                    await sMsg.Channel.SendMessageAsync("Scraping has begun!");
-                    int before = BeatmapManager.CachedMapCount;
-                    for (int i = 0; i < 30; i++)
-                    {
-                        int user_id = Utils.GetRandomNumber(10, 10000000);
-                        var kek = banchoAPI.GetBestPlays(user_id, 100);
-                        foreach (var item in kek)
-                        {
-                            BeatmapManager.GetBeatmap(item.BeatmapID);
-                        }
-                    }
-                    int after = BeatmapManager.CachedMapCount;
-                    await sMsg.Channel.SendMessageAsync($"Scraping is done: scraped beatmaps_count: {after - before}");
-
-                }
-            }, ">scrape");
+            }, ">osuset", ">set"));
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -19,9 +20,11 @@ namespace CirclesBot
     /// 5. Fix Pages.cs and PagesHandler.cs mess and make them the default for sending embeds for easier use
     /// 
     /// </summary>
-    class Program
+    class Program : Module
     {
-        private static readonly string[] randomQuirkyResponses = new string[] {
+        public override string Name => "Main Module";
+
+        public static readonly string[] RandomQuirkyResponses = new string[] {
                 "I agree!", "Thats stupid", "Please tell us more",
                 "I sense a lie", "The person above me is speaking straight facts",
                 "No cap", "Haha", "Funny", "Error", "True", ":sunglasses:",
@@ -35,19 +38,16 @@ namespace CirclesBot
 
         public const ulong BotOwnerID = 591339926017146910;
 
-        public static DiscordSocketClient Client = new DiscordSocketClient();
+        public static int TotalMemberCount { private set; get; }
 
-        static void Main(string[] args)
+        public static DiscordSocketClient Client = new DiscordSocketClient(new DiscordSocketConfig() { AlwaysDownloadUsers = true });
+
+        public static List<Module> LoadedModules = new List<Module>();
+
+        public Program()
         {
-            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
-            bool signalKill = false;
-
-            //"Module" Initialization
-            OsuModule osuModule = new OsuModule();
-            MiscModule miscModule = new MiscModule();
-
-            CommandHandler.AddCommand("Shows bot info", (sMsg, buffer) =>
+            Commands.Add(new Command("Shows bot info", (sMsg, buffer) =>
             {
                 var runtimeVer = RuntimeInformation.FrameworkDescription;
 
@@ -65,16 +65,18 @@ namespace CirclesBot
                 desc += $"GC: **0:** `{GC.CollectionCount(0)}` **1:** `{GC.CollectionCount(1)}` **2:** `{GC.CollectionCount(2)}`\n";
                 desc += $"Oppai Version: **{EZPP.GetVersion()}**\n";
                 desc += $"Ping: **{Client.Latency} MS**\n";
+                desc += $"Guilds: **{Client.Guilds.Count}**\n";
+                desc += $"TotalMembers: **{TotalMemberCount}**\n";
                 desc += $"Beatmaps In Memory: **{BeatmapManager.CachedMapCount}**\n";
-                desc += $"Commands Available: **{CommandHandler.ActiveCommands}**\n";
+                desc += $"Modules: **{Program.LoadedModules.Count}**\n";
 
                 embed.WithDescription(desc);
                 embed.WithColor(Color.Blue);
                 sMsg.Channel.SendMessageAsync("", false, embed.Build());
-            }, ">info");
+            }, ">info"));
 
             //This is very ugly
-            CommandHandler.AddCommand("Shows this embed", (sMsg, buffer) =>
+            Commands.Add(new Command("Shows this embed", (sMsg, buffer) =>
             {
                 Pages commandPages = new Pages();
 
@@ -82,33 +84,39 @@ namespace CirclesBot
 
                 EmbedBuilder eb = new EmbedBuilder();
                 eb.WithAuthor("Commands available");
-
-                for (int i = 0; i < CommandHandler.Commands.Count; i++)
+                foreach (var module in LoadedModules)
                 {
                     string tempDesc = "";
-                    var currentCommand = CommandHandler.Commands[i];
-                    string triggerText = "";
-                    for (int j = 0; j < currentCommand.Triggers.Count; j++)
+                    tempDesc += $"`{module.Name}`\n";
+                    for (int i = 0; i < module.Commands.Count; i++)
                     {
-                        bool isLast = j == currentCommand.Triggers.Count - 1;
-                        triggerText += currentCommand.Triggers[j];
-                        if (!isLast)
-                            triggerText += ", ";
-                    }
-                    tempDesc += $"**{i + 1}.** {triggerText} **{currentCommand.Description}**\n";
+                        var currentCommand = module.Commands[i];
+                        string triggerText = "";
+                        for (int j = 0; j < currentCommand.Triggers.Count; j++)
+                        {
+                            bool isLast = j == currentCommand.Triggers.Count - 1;
+                            triggerText += currentCommand.Triggers[j];
+                            if (!isLast)
+                                triggerText += ", ";
+                        }
+                        tempDesc += $"**{i + 1}.** {triggerText} **{currentCommand.Description}**\n";
 
-                    if (desc.Length + tempDesc.Length < 2048)
-                        desc += tempDesc;
-                    else
-                    {
-                        eb.WithDescription(desc);
-                        commandPages.AddContent(eb);
+                        if (desc.Length + tempDesc.Length < 2048)
+                        {
+                            desc += tempDesc;
+                            tempDesc = "";
+                        }
+                        else
+                        {
+                            eb.WithDescription(desc);
+                            commandPages.AddContent(eb);
 
-                        eb = new EmbedBuilder();
-                        eb.WithAuthor("Commands available");
+                            eb = new EmbedBuilder();
+                            eb.WithAuthor("Commands available");
 
-                        desc = "";
-                        desc += tempDesc;
+                            desc = "";
+                            desc += tempDesc;
+                        }
                     }
                 }
 
@@ -119,14 +127,49 @@ namespace CirclesBot
                 //eb.WithDescription(desc);
                 //eb.WithColor(Color.Green);
                 PagesHandler.SendPages(sMsg.Channel, commandPages);
-            }, ">help");
+            }, ">help"));
+        }
+
+
+        static void Main(string[] args)
+        {
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+
+            Logger.Log("Running bot!");
+
+            bool signalKill = false;
+
+            Logger.Log("Loading Modules", LogLevel.Info);
+
+            int time = Utils.Benchmark(() =>
+            {
+                foreach (var type in System.Reflection.Assembly.GetExecutingAssembly().GetTypes())
+                {
+                    if (type.IsInterface || type.IsAbstract)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (type.IsAssignableTo(typeof(Module)))
+                        {
+                            Logger.Log($"Found module: {type.Name}", LogLevel.Info);
+                            Module loadedModule = (Module)Activator.CreateInstance(type);
+                            LoadedModules.Add(loadedModule);
+                            Logger.Log($"Loaded module: {type.Name}", LogLevel.Success);
+                        }
+                    }
+                }
+            });
+
+            Logger.Log($"Modules took {time} milliseconds to load");
 
             Client.MessageReceived += (s) =>
             {
                 //1% chance
-                if(Utils.GetRandomDouble() < .01)
+                if (Utils.GetRandomChance(1))
                 {
-                    s.Channel.SendMessageAsync(randomQuirkyResponses[Utils.GetRandomNumber(0, randomQuirkyResponses.Length - 1)]);
+                    s.Channel.SendMessageAsync(RandomQuirkyResponses[Utils.GetRandomNumber(0, RandomQuirkyResponses.Length - 1)]);
                 }
 
                 if (s.Content.ToLower() == "::kys" && s.Author.Id == BotOwnerID)
@@ -142,9 +185,16 @@ namespace CirclesBot
                 Logger.Log(s.Channel.Name + "->" + s.Author.Username + ": " + s.Content);
                 try
                 {
-                    CommandHandler.Handle(s);
+                    foreach (var module in LoadedModules)
+                    {
+                        if (s is SocketUserMessage sMsg)
+                        {
+                            module.Commands.ForEach((command) => command.Handle(sMsg));
+                        }
+                    }
                 }
-                catch(Exception ex) {
+                catch (Exception ex)
+                {
                     Logger.Log($"An exception has been thrown when trying to handle a command!", LogLevel.Error);
                     Logger.Log($"User responsable: [{s.Author.Username}]@[{s.Author.Id}] What they wrote: [{s.Content}]\n", LogLevel.Info);
                     Logger.Log($"[Exception Message]\n{ex.Message}\n", LogLevel.Error);
@@ -190,7 +240,14 @@ namespace CirclesBot
                 return Task.Delay(0);
             };
 
+            Client.GuildAvailable += (s) =>
+            {
+                TotalMemberCount += s.MemberCount;
+                return Task.Delay(0);
+            };
+
             Client.LoginAsync(TokenType.Bot, Credentials.DISCORD_API_KEY);
+            Logger.Log("Logging in...");
             Client.StartAsync();
 
             Stopwatch sw = new Stopwatch();
@@ -205,7 +262,6 @@ namespace CirclesBot
                     Console.ReadLine();
                 }
             }
-
         }
     }
 }

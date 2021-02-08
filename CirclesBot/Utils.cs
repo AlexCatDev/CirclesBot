@@ -20,9 +20,9 @@ namespace CirclesBot
             return rng.Next(min, max + 1);
         }
 
-        public static double GetRandomDouble()
+        public static bool GetRandomChance(double chancePercentage)
         {
-            return rng.NextDouble();
+            return rng.NextDouble() < (chancePercentage/100.0);
         }
 
         public static string ToFriendlyString(this Mods mod)

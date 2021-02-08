@@ -7,8 +7,10 @@ using System.Threading.Tasks;
 
 namespace CirclesBot
 {
-    public class MiscModule
+    public class MiscModule : Module
     {
+        public override string Name => "Misc Module";
+
         class CallAcceptEmote : IEmote
         {
             public string Name => "✅";
@@ -21,19 +23,19 @@ namespace CirclesBot
 
         public MiscModule()
         {
-            CommandHandler.AddCommand("Convert decimal number to binary", (sMsg, buffer) => {
+            Commands.Add(new Command("Convert decimal number to binary", (sMsg, buffer) => {
                 string binary = Convert.ToString(int.Parse(buffer.GetRemaining()), 2);
                 sMsg.Channel.SendMessageAsync($"**{binary}**");
 
-            }, ">d", ">decimal");
+            }, ">d", ">decimal"));
 
-            CommandHandler.AddCommand("Convert binary number to decimal", (sMsg, buffer) => {
+            Commands.Add(new Command("Convert binary number to decimal", (sMsg, buffer) => {
                 int val = Convert.ToInt32(buffer.GetRemaining(), 2);
                 sMsg.Channel.SendMessageAsync($"**{val}**");
 
-            }, ">b", ">binary");
+            }, ">b", ">binary"));
 
-            CommandHandler.AddCommand("Convert binary to chars", (sMsg, buffer) => {
+            Commands.Add(new Command("Convert binary to chars", (sMsg, buffer) => {
                 var list = new System.Collections.Generic.List<Byte>();
                 string binary = buffer.GetRemaining();
 
@@ -57,15 +59,15 @@ namespace CirclesBot
                 else
                     sMsg.Channel.SendMessageAsync($"**{output}**");
 
-            }, ">charstobin", ">cbinary", ">char", ">chars", ">binarytostring", ">cb", ">string");
+            }, ">charstobin", ">cbinary", ">char", ">chars", ">binarytostring", ">cb", ">string"));
 
-            CommandHandler.AddCommand("Convert hex to decimal", (sMsg, buffer) => {
+            Commands.Add(new Command("Convert hex to decimal", (sMsg, buffer) => {
                 int val = Convert.ToInt32(buffer.GetRemaining(), 16);//int.Parse(buffer.GetRemaining(), NumberStyles.HexNumber | NumberStyles.AllowHexSpecifier);
                 sMsg.Channel.SendMessageAsync($"**{val}**");
 
-            }, ">h", ">hex");
+            }, ">h", ">hex"));
 
-            CommandHandler.AddCommand("Make the bot say whatever", async (sMsg, buffer) => {
+            Commands.Add(new Command("Make the bot say whatever", async (sMsg, buffer) => {
                 //bool delete = buffer.HasParameter("-d");
 
                 string msg = sMsg.Content.Remove(0, 4);
@@ -73,9 +75,9 @@ namespace CirclesBot
                     sMsg.Channel.SendMessageAsync($"no");
                 else
                     sMsg.Channel.SendMessageAsync($"**{msg}**");
-            }, ">say");
+            }, ">say"));
 
-            CommandHandler.AddCommand("ooga booga", async (sMsg, buffer) => {
+            Commands.Add(new Command("ooga booga", async (sMsg, buffer) => {
                 EmbedBuilder builder = new EmbedBuilder();
                 builder.WithAuthor($"{sMsg.Author.Username} Is calling from {Program.Client.GetGuild(sMsg).Name}", $"{sMsg.Author.GetAvatarUrl()}");
                 builder.WithThumbnailUrl($"{Program.Client.GetGuild(sMsg).IconUrl}");
@@ -83,7 +85,7 @@ namespace CirclesBot
 
                 var msgSend = await sMsg.Channel.SendMessageAsync("", false, builder.Build());
                 await msgSend.AddReactionsAsync(new IEmote[] { new CallAcceptEmote(), new CallDenyEmote() });
-            }, ">call");
+            }, ">call"));
         }
     }
 }

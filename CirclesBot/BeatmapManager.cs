@@ -21,7 +21,7 @@ namespace CirclesBot
             if (!Directory.Exists(MapDirectory))
             {
                 Directory.CreateDirectory(MapDirectory);
-                Logger.Log("Map directory didn't exist and has been created", LogLevel.Info);
+                Logger.Log("Map directory didn't exist and has been created", LogLevel.Warning);
             }
         }
 
