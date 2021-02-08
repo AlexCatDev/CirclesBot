@@ -592,7 +592,7 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">osu", ">profile"));
+            }, ">osu"));
 
 
             Commands.Add(new Command("Sets your osu user", (sMsg, buffer) =>

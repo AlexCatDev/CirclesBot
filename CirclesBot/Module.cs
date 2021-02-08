@@ -14,6 +14,8 @@ namespace CirclesBot
 
         private Action<SocketUserMessage, CommandBuffer> onActivate;
 
+        public bool IsEnabled { get; set; } = true;
+
         public Command(string description, Action<SocketUserMessage, CommandBuffer> onActivate, params string[] triggers)
         {
             Description = description;
@@ -34,7 +36,15 @@ namespace CirclesBot
             if (cmd != null)
             {
                 args.RemoveAt(0);
-                onActivate?.Invoke(userMsg, new CommandBuffer(args));
+                if (IsEnabled)
+                {
+                    onActivate?.Invoke(userMsg, new CommandBuffer(args));
+                }
+                else
+                {
+                    userMsg.Channel.SendMessageAsync("This command has been disabled by the bot owner");
+                }
+
             }
         }
     }

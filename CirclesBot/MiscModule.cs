@@ -89,8 +89,9 @@ namespace CirclesBot
                     sMsg.Channel.SendMessageAsync($"**{msg}**");
             }, ">say"));
 
-            Commands.Add(new Command("Call another server lol", async (sMsg, buffer) => {
-                string message = buffer.GetRemaining().Replace("_"," ");
+            Commands.Add(new Command("Call another server lol", async (sMsg, buffer) =>
+            {
+                string message = buffer.GetRemaining().Replace("_", " ");
 
                 CallObject activeCall1 = activeCalls.Find((o) => o.Callee == sMsg.Channel.Id);
                 CallObject activeCall2 = activeCalls.Find((o) => o.Receiver == sMsg.Channel.Id);
@@ -117,7 +118,7 @@ namespace CirclesBot
                 {
                     await sMsg.Channel.SendMessageAsync("A call is already active");
                 }
-            }, ">call"));
+            }, ">call") { IsEnabled = false});
 
             Program.Client.ReactionAdded += async (s, e, x) =>
             {

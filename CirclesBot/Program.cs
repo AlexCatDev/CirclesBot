@@ -46,6 +46,50 @@ namespace CirclesBot
 
         public Program()
         {
+            Commands.Add(new Command("Enable a command", (sMsg, buffer) => {
+                string commandToEnable = buffer.GetRemaining();
+
+                if (sMsg.Author.Id == Program.BotOwnerID)
+                {
+                    foreach (var module in Program.LoadedModules)
+                    {
+                        foreach (var command in module.Commands)
+                        {
+                            if (command.Triggers.Contains(commandToEnable))
+                            {
+                                command.IsEnabled = true;
+                                sMsg.Channel.SendMessageAsync($"Enabled **{commandToEnable}** in `{module.Name}`");
+                                return;
+                            }
+                        }
+                    }
+                    sMsg.Channel.SendMessageAsync($"{commandToEnable} no such command found");
+                }
+            }, ">enable"));
+
+            Commands.Add(new Command("Disable a command", (sMsg, buffer) => {
+                string commandToDisable = buffer.GetRemaining();
+
+                if (commandToDisable == ">disable" || commandToDisable == ">enable")
+                    return;
+
+                if (sMsg.Author.Id == Program.BotOwnerID)
+                {
+                    foreach (var module in Program.LoadedModules)
+                    {
+                        foreach (var command in module.Commands)
+                        {
+                            if (command.Triggers.Contains(commandToDisable))
+                            {
+                                command.IsEnabled = false;
+                                sMsg.Channel.SendMessageAsync($"Disabled **{commandToDisable}** in `{module.Name}`");
+                                return;
+                            }
+                        }
+                    }
+                    sMsg.Channel.SendMessageAsync($"{commandToDisable} no such command found");
+                }
+            }, ">disable"));
 
             Commands.Add(new Command("Shows bot info", (sMsg, buffer) =>
             {
