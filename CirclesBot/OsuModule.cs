@@ -58,15 +58,21 @@ namespace CirclesBot
                 string temp = "";
 
                 string isFCInfo = "";
-
-                //If slider ends missed is over 9, 
+ 
                 if(!score.IsFC)
                     isFCInfo = $" ({score.PP_IF_FC.ToString("F2")}PP for {score.IF_FC_Accuracy.ToString("F2")}% FC)";
 
-                temp += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]\n";
+                temp += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]";
+
+                if (Utils.GetRandomDouble() < .01)
+                    temp += ":tada:";
+
+                temp += "\n";
+
                 temp += $"▸ {Utils.GetEmoteForRankLetter(score.RankingLetter)} ▸ **{score.PP.ToString("F2")}PP**{isFCInfo} ▸ {score.Accuracy.ToString("F2")}%\n";
                 temp += $"▸ {score.Score} ▸ x{score.MaxCombo}/{score.MapMaxCombo} ▸ [{score.Count300}/{score.Count100}/{score.Count50}/{score.CountMiss}]\n";
                 temp += $"▸ **AR:** {score.AR.ToString("F1")} **OD:** {score.OD.ToString("F1")} **HP:** {score.HP.ToString("F1")} **CS:** {score.CS.ToString("F1")} ▸ **BPM:** {score.BPM.ToString("F0")}\n";
+
                 if (!score.IsPass)
                     temp += $"▸ **Map Completion:** {score.CompletionPercentage.ToString("F2")}%\n";
 
@@ -83,14 +89,15 @@ namespace CirclesBot
                 }
             }
 
-            //embedBuilder.WithThumbnailUrl(BeatmapManager.GetBeatmapImageUrl(beatmapSetID.ToString()));
-            //embedBuilder.WithAuthor($"Recent Plays for {userToCheck}", BeatmapManager.GetProfileImageUrl(scores[0].UserID.ToString()));
+            
 
             embedBuilder.WithDescription(description);
 
             embedBuilder.WithFooter($"Plays shown: {count}/{scores.Count}");
 
             embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
+
+
 
             return embedBuilder;
         }
@@ -101,6 +108,11 @@ namespace CirclesBot
         /// </summary>
         public OsuModule()
         {
+            int time = Utils.Benchmark(() => {
+                BeatmapManager.LoadAllMaps();
+            });
+            Logger.Log($"Loaded {BeatmapManager.CachedMapCount} local beatmaps it took {time} milliseconds", LogLevel.Success);
+
             banchoAPI = new BanchoAPI(Credentials.OSU_API_KEY);
 
             if (File.Exists("./OsuUsers"))
@@ -353,6 +365,9 @@ namespace CirclesBot
                 int? indexToCheck = buffer.GetInt();
 
                 double? accuracy = buffer.GetDouble();
+
+                if (accuracy == null)
+                    accuracy = indexToCheck;
 
                 string beatmap = buffer.GetParameter("https://osu.ppy.sh/beatmapsets/");
                 ulong beatmapSetID = 0;

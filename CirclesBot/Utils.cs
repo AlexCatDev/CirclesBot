@@ -20,6 +20,11 @@ namespace CirclesBot
             return rng.Next(min, max + 1);
         }
 
+        public static double GetRandomDouble()
+        {
+            return rng.NextDouble();
+        }
+
         public static string ToFriendlyString(this Mods mod)
         {
             string output = mod.ToString().Replace(", ", "");

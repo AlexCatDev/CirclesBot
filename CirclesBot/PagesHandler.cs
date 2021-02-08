@@ -8,7 +8,7 @@ namespace CirclesBot
     {
         private static Dictionary<ulong, Pages> pagesDict = new Dictionary<ulong, Pages>();
 
-        public static void SendPages(ISocketMessageChannel msgChannel, Pages pages)
+        public static void SendPages(this ISocketMessageChannel msgChannel, Pages pages)
         {
             var sendMessage = msgChannel.SendMessageAsync("", false, pages.GetFirst.Build()).Result;
 
@@ -22,11 +22,7 @@ namespace CirclesBot
 
         public static void Handle(IUserMessage msg, SocketReaction reaction)
         {
-            if (reaction.User.Value.IsBot)
-                return;
-
-            Pages page;
-            if (pagesDict.TryGetValue(msg.Id, out page))
+            if (pagesDict.TryGetValue(msg.Id, out Pages page))
             {
                 if (reaction.Emote.Name == "➡")
                     page.Handle(msg, PageDirection.Forwards);
@@ -35,7 +31,7 @@ namespace CirclesBot
                 else
                     return;
 
-                msg.RemoveReactionAsync(reaction.Emote, reaction.User.Value);
+                //msg.RemoveReactionAsync(reaction.Emote, reaction.User.Value);
             }
         }
     }
