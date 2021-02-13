@@ -38,11 +38,22 @@ namespace CirclesBot
 
         public const ulong BotOwnerID = 591339926017146910;
 
-        public static int TotalMemberCount { private set; get; }
-
-        public static DiscordSocketClient Client = new DiscordSocketClient(new DiscordSocketConfig() { AlwaysDownloadUsers = true });
+        public static DiscordSocketClient Client = new DiscordSocketClient(new DiscordSocketConfig() { AlwaysDownloadUsers = true, ConnectionTimeout = Int32.MaxValue });
 
         public static List<Module> LoadedModules = new List<Module>();
+
+        private static Stopwatch uptimeWatch = new Stopwatch();
+        private static Stopwatch downtimeWatch = new Stopwatch();
+
+        public static int GetMemberCount()
+        {
+            int total = 0;
+            foreach (var guild in Client.Guilds)
+            {
+                total += guild.MemberCount;
+            }
+            return total;
+        }
 
         public static T GetModule<T>() where T : Module
         {
@@ -120,13 +131,16 @@ namespace CirclesBot
                 desc += $"GC: **0:** `{GC.CollectionCount(0)}` **1:** `{GC.CollectionCount(1)}` **2:** `{GC.CollectionCount(2)}`\n";
                 desc += $"Oppai Version: **{EZPP.GetVersion()}**\n";
                 desc += $"Ping: **{Client.Latency} MS**\n";
+                desc += $"Uptime: **{Utils.FormatTime(uptimeWatch.Elapsed).Replace("Ago", "")}**\n";
+                desc += $"Downtime: **{Utils.FormatTime(downtimeWatch.Elapsed).Replace("Ago", "")}**\n";
                 desc += $"Guilds: **{Client.Guilds.Count}**\n";
-                desc += $"TotalMembers: **{TotalMemberCount}**\n";
+                desc += $"TotalMembers: **{GetMemberCount()}**\n";
                 desc += $"Beatmaps In Memory: **{BeatmapManager.CachedMapCount}**\n";
                 desc += $"Modules: **{LoadedModules.Count}**\n";
 
                 embed.WithDescription(desc);
                 embed.WithColor(Color.Blue);
+                //embed.WithFooter($"Started {Utils.FormatTime(uptimeWatch.Elapsed)}");
                 sMsg.Channel.SendMessageAsync("", false, embed.Build());
             }, ">info"));
 
@@ -260,6 +274,8 @@ namespace CirclesBot
 
             Client.Ready += () =>
             {
+                uptimeWatch.Start();
+                downtimeWatch.Stop();
                 Logger.Log($"[Bot Connect]\nUser={Client.CurrentUser.Username}", LogLevel.Success);
                 Client.SetGameAsync(">help");
                 return Task.Delay(0);
@@ -267,6 +283,8 @@ namespace CirclesBot
 
             Client.Disconnected += (s) =>
             {
+                uptimeWatch.Stop();
+                downtimeWatch.Start();
                 Logger.Log($"[Bot Disconnected]\n{s.Message}", LogLevel.Error);
                 return Task.Delay(0);
             };
@@ -297,11 +315,10 @@ namespace CirclesBot
 
             Client.GuildAvailable += (s) =>
             {
-                TotalMemberCount += s.MemberCount;
                 return Task.Delay(0);
             };
 
-            Client.LoginAsync(TokenType.Bot, Credentials.DISCORD_API_KEY);
+            Client.LoginAsync(TokenType.Bot, Credentials.DISCORD_API_KEY_DEVELOPMENT);
             Logger.Log("Logging in...");
             Client.StartAsync();
 

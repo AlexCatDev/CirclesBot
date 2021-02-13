@@ -12,11 +12,14 @@ namespace CirclesBot
 {
     public class Item
     {
-        public string EmojiName;
+        public string Icon;
         public string Name;
         public string Description;
 
-        public int Capabilities;
+        public int Damage;
+        public int Accuracy;
+
+        public int HealAmount = -1;
     }
 
     public class Badge
@@ -162,7 +165,7 @@ namespace CirclesBot
                 });
 
                 if (userToCheck.Id == Program.BotOwnerID)
-                    builder.Description += $":star: Owner";
+                    builder.WithFooter($"Bot Creator");
 
                 sMsg.Channel.SendMessageAsync("", false, builder.Build());
             }, ">profile", ">pf"));
@@ -176,9 +179,9 @@ namespace CirclesBot
                         profile.Inventory.Add(new Item()
                         {
                             Name = item,
-                            Capabilities = 69,
+                            Damage = 69,
                             Description = "A item",
-                            EmojiName = ":flushed:"
+                            Icon = ":flushed:"
                         });
                     });
 

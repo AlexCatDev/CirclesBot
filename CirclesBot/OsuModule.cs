@@ -376,7 +376,10 @@ namespace CirclesBot
                 double? accuracy = buffer.GetDouble();
 
                 if (accuracy == null)
+                {
                     accuracy = indexToCheck;
+                    indexToCheck = null;
+                }
 
                 string beatmap = buffer.GetParameter("https://osu.ppy.sh/beatmapsets/");
                 ulong beatmapSetID = 0;
@@ -449,7 +452,7 @@ namespace CirclesBot
 
 
                     ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), ez.MaxCombo, (int)Math.Floor(estimatedCount100), 0, 0, mods);
-                    sMsg.Channel.SendMessageAsync($"`FCPP` for **{accuracy}%** and mods **{mods.ToFriendlyString()}** is: **{ez.PP.ToString("F2")}** on **{ez.SongName} [{ez.DifficultyName}]**");
+                    sMsg.Channel.SendMessageAsync($"`FC` with **{accuracy}%** and mods **{mods.ToFriendlyString()}** is: **{ez.PP.ToString("F2")}** on **{ez.SongName} [{ez.DifficultyName}]**");
                 }
                 catch (Exception ex)
                 {
