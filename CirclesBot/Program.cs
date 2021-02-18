@@ -16,10 +16,8 @@ namespace CirclesBot
     /// TODO LIST
     /// 
     /// 1. Fix this stupid mess
-    /// 2. Implement interfaces and call the IModules - Kinda done
-    /// 3. Abstract away boilerplate code that keeps getting repeated
-    /// 4. Add Leveling system with runescape XP Curves because why not, i like runescape :)
-    /// 5. Fix Pages.cs and PagesHandler.cs mess and make them the default for sending embeds for easier use
+    /// 2. Abstract away boilerplate code that keeps getting repeated
+    /// 3. Fix Pages.cs and PagesHandler.cs mess and make them the default for sending embeds for easier use
     /// 
     /// </summary>
     class Program : Module
@@ -35,11 +33,11 @@ namespace CirclesBot
                 "i rate 1/10", "i rate 2/10", "i rate 3/10","i rate 4/10","i rate 5/10","i rate 6/10","i rate 7/10", "i rate 8/10", "i rate 9/10", "i rate 10/10",
                 "you lost", "cock", "penis", "bye", "hello", "calm down", "it burns", "for real tho", "bro", "i guess",
                 ":(", ":)", ":D", ":-)", ":-(", "D:", ";(", ";)", ":o", ":O", ">:O", ":c", "c:", "<3", "</3"
-            };
+        };
 
         public const ulong BotOwnerID = 591339926017146910;
 
-        public static DiscordSocketClient Client = new DiscordSocketClient(new DiscordSocketConfig() { AlwaysDownloadUsers = true, ConnectionTimeout = Int32.MaxValue });
+        public static DiscordSocketClient Client = new DiscordSocketClient(new DiscordSocketConfig() { AlwaysDownloadUsers = true, ConnectionTimeout = -1 });
 
         public static List<Module> LoadedModules = new List<Module>();
 
@@ -336,7 +334,7 @@ namespace CirclesBot
                 return Task.Delay(0);
             };
 
-            Client.LoginAsync(TokenType.Bot, Credentials.DISCORD_API_KEY);
+            Client.LoginAsync(TokenType.Bot, Credentials.OPTIONAL_DISCORD_API_KEY);
             Logger.Log("Logging in...");
             Client.StartAsync();
 
@@ -350,6 +348,7 @@ namespace CirclesBot
                     Client.LogoutAsync().GetAwaiter().GetResult();
                     Logger.Log("logged out bye, press enter to continue", LogLevel.Warning);
                     Console.ReadLine();
+                    Environment.Exit(0);
                 }
             }
         }

@@ -101,6 +101,42 @@ namespace CirclesBot
             return embedBuilder;
         }
 
+        public string DecipherOsuUsername(Discord.WebSocket.SocketMessage sMsg, CommandBuffer buffer)
+        {
+            string username = "";
+            if (sMsg.MentionedUsers.Count > 0)
+            {
+                Program.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id, profile => {
+                    username = profile.OsuUsername;
+                });
+
+                if (username == "")
+                {
+                    sMsg.Channel.SendMessageAsync("That person has not linked their osu! account.");
+                    return null;
+                }
+            }
+
+            if (username == "")
+                username = buffer.GetRemaining();
+
+            if (username == "")
+            {
+                Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
+                    username = profile.OsuUsername;
+                });
+
+                if (username == "")
+                {
+                    sMsg.Channel.SendMessageAsync("Please mention someone, use their username or set your own with **>osuset <username>**");
+                    return null;
+                }
+            }
+
+
+            return username;
+        }
+
         public OsuModule()
         {
             banchoAPI = new BanchoAPI(Program.Credentials.OSU_API_KEY);
@@ -134,40 +170,11 @@ namespace CirclesBot
                         return;
                 }
 
-                Stopwatch sw = Stopwatch.StartNew();
-
-                string userToCheck = "";
-                
-                if (sMsg.MentionedUsers.Count > 0)
-                {
-                    Program.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id, profile => {
-                        userToCheck = profile.OsuUsername;
-                    });
-
-                    if (userToCheck == "")
-                    {
-                        sMsg.Channel.SendMessageAsync("That person has not linked their osu! account.");
-                        return;
-                    }
-                }
-
                 bool showList = buffer.HasParameter("-l");
+                string userToCheck = DecipherOsuUsername(sMsg, buffer);
 
-                if (userToCheck == "")
-                    userToCheck = buffer.GetRemaining();
-
-                if (userToCheck == "")
-                {
-                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
-                        userToCheck = profile.OsuUsername;
-                    });
-
-                    if (userToCheck == "")
-                    {
-                        sMsg.Channel.SendMessageAsync("Please mention someone, use their username or set your own with **>osuset <username>**");
-                        return;
-                    }
-                }
+                if (userToCheck == null)
+                    return;
 
                 Logger.Log($"getting recent plays for '{userToCheck}'", LogLevel.Info);
 
@@ -211,23 +218,6 @@ namespace CirclesBot
 
             Commands.Add(new Command("Shows user plays on a specific map", (sMsg, buffer) =>
             {
-                Stopwatch sw = Stopwatch.StartNew();
-
-                string userToCheck = "";
-
-                if (sMsg.MentionedUsers.Count > 0)
-                {
-                    Program.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id, profile => {
-                        userToCheck = profile.OsuUsername;
-                    });
-
-                    if (userToCheck == "")
-                    {
-                        sMsg.Channel.SendMessageAsync("That person has not linked their osu! account.");
-                        return;
-                    }
-                }
-
                 bool ripple = buffer.HasParameter("-ripple");
                 string beatmap = buffer.GetParameter("https://osu.ppy.sh/beatmapsets/");
                 ulong beatmapSetID = 0;
@@ -244,21 +234,9 @@ namespace CirclesBot
                     return;
                 }
 
-                if (userToCheck == "")
-                    userToCheck = buffer.GetRemaining();
-
-                if (userToCheck == "")
-                {
-                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
-                        userToCheck = profile.OsuUsername;
-                    });
-
-                    if (userToCheck == "")
-                    {
-                        sMsg.Channel.SendMessageAsync("Please mention someone, use their username or set your own with **>osuset <username>**");
-                        return;
-                    }
-                }
+                string userToCheck = DecipherOsuUsername(sMsg, buffer);
+                if (userToCheck == null)
+                    return;
 
                 Logger.Log($"getting recent plays for '{userToCheck}'", LogLevel.Info);
 
@@ -301,42 +279,14 @@ namespace CirclesBot
 
             Commands.Add(new Command("Shows top plays for user", (sMsg, buffer) =>
             {
-                Stopwatch sw = Stopwatch.StartNew();
-
-                string userToCheck = "";
-
-                if (sMsg.MentionedUsers.Count > 0)
-                {
-                    Program.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id, profile => {
-                        userToCheck = profile.OsuUsername;
-                    });
-
-                    if (userToCheck == "")
-                    {
-                        sMsg.Channel.SendMessageAsync("That person has not linked their osu! account.");
-                        return;
-                    }
-                }
-
                 bool showRecent = buffer.HasParameter("-r");
 
                 bool isRipple = buffer.HasParameter("-ripple");
 
-                if (userToCheck == "")
-                    userToCheck = buffer.GetRemaining();
+                string userToCheck = DecipherOsuUsername(sMsg, buffer);
 
-                if (userToCheck == "")
-                {
-                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
-                        userToCheck = profile.OsuUsername;
-                    });
-
-                    if (userToCheck == "")
-                    {
-                        sMsg.Channel.SendMessageAsync("Please mention someone, use their username or set your own with **>osuset <username>**");
-                        return;
-                    }
-                }
+                if (userToCheck == null)
+                    return;
 
                 EmbedBuilder embedBuilder = new EmbedBuilder();
 
@@ -484,29 +434,16 @@ namespace CirclesBot
 
             Commands.Add(new Command("Compares plays for user", (sMsg, buffer) =>
             {
-                string userToCheck = "";
-
                 bool isRipple = buffer.HasParameter("-ripple");
 
                 int? indexToCheck = buffer.GetInt();
 
                 ulong beatmapID = 0;
 
-                if (userToCheck == "")
-                    userToCheck = buffer.GetRemaining();
+                string userToCheck = DecipherOsuUsername(sMsg, buffer);
 
-                if (sMsg.MentionedUsers.Count > 0)
-                {
-                    Program.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id, profile => {
-                        userToCheck = profile.OsuUsername;
-                    });
-
-                    if (userToCheck == "")
-                    {
-                        sMsg.Channel.SendMessageAsync("That person has not linked their osu! account.");
-                        return;
-                    }
-                }
+                if (userToCheck == null)
+                    return;
 
                 if (indexToCheck == null)
                 {
@@ -532,19 +469,6 @@ namespace CirclesBot
                             discordChannelToBeatmap[sMsg.Channel.Id] = beatmapID;
                         else
                             discordChannelToBeatmap.Add(sMsg.Channel.Id, beatmapID);
-                    }
-                }
-
-                if (userToCheck == "")
-                {
-                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
-                        userToCheck = profile.OsuUsername;
-                    });
-
-                    if (userToCheck == "")
-                    {
-                        sMsg.Channel.SendMessageAsync("Please mention someone, use their username or set your own with **>osuset <username>**");
-                        return;
                     }
                 }
 
@@ -589,38 +513,12 @@ namespace CirclesBot
 
             Commands.Add(new Command("Shows your osu profile or someone elses", (sMsg, buffer) =>
             {
-                string userToCheck = "";
-
-                if (sMsg.MentionedUsers.Count > 0)
-                {
-                    Program.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id, profile => {
-                        userToCheck = profile.OsuUsername;
-                    });
-
-                    if (userToCheck == "")
-                    {
-                        sMsg.Channel.SendMessageAsync("That person has not linked their osu! account.");
-                        return;
-                    }
-                }
-
                 bool isRipple = buffer.HasParameter("-ripple");
 
-                if (userToCheck == "")
-                    userToCheck = buffer.GetRemaining();
+                string userToCheck = DecipherOsuUsername(sMsg, buffer);
 
-                if (userToCheck == "")
-                {
-                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
-                        userToCheck = profile.OsuUsername;
-                    });
-
-                    if (userToCheck == "")
-                    {
-                        sMsg.Channel.SendMessageAsync("Please mention someone, use their username or set your own with **>osuset <username>**");
-                        return;
-                    }
-                }
+                if (userToCheck == null)
+                    return;
 
                 try
                 {
@@ -657,7 +555,7 @@ namespace CirclesBot
                 }
                 else
                 {
-                    sMsg.Channel.SendMessageAsync("Atleast type something like... i dunno? Your fucking osu! username?");
+                    sMsg.Channel.SendMessageAsync("Atleast type something like... i dunno? Your fucking **osu!** username?");
                 }
             }, ">osuset", ">set"));
         }
