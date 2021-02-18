@@ -10,10 +10,6 @@ namespace CirclesBot
     {
         public const string MapDirectory = "./Maps";
 
-        private static Dictionary<ulong, string> mapCache = new Dictionary<ulong, string>();
-
-        public static int CachedMapCount => mapCache.Count;
-
         private static object lockObject = new object();
 
         static BeatmapManager()
@@ -25,32 +21,14 @@ namespace CirclesBot
             }
         }
 
-        public static void LoadAllMaps()
-        {
-            foreach (var item in Directory.GetFiles(MapDirectory))
-            {
-                FileInfo fi = new FileInfo(item);
-                ulong id = ulong.Parse(fi.Name);
-                string bm = File.ReadAllText(item);
-                mapCache.Add(id, bm);
-            }
-        }
-
         public static string GetBeatmap(ulong id)
         {
             lock (lockObject)
             {
-                //First check if map is already cached in memory
-                if (mapCache.TryGetValue(id, out string bmp))
-                {
-                    //Logger.Log("Just read a map from memory cache", LogLevel.Info);
-                    return bmp;
-                }
-                //If not then look for the file on disk
+                //Load map from disk (if available)
                 if (File.Exists($"{MapDirectory}/{id}"))
                 {
                     string bm = File.ReadAllText($"{MapDirectory}/{id}");
-                    mapCache.Add(id, bm);
                     return bm;
                 }
                 else
@@ -92,8 +70,6 @@ namespace CirclesBot
 
                             Logger.Log($"\tIt took {time} milliseconds", LogLevel.Success);
                         }
-                        //Add map to cache
-                        mapCache.Add(id, beatmap);
                         return beatmap;
                     }
                 }

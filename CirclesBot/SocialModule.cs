@@ -43,6 +43,8 @@ namespace CirclesBot
         public List<Item> Inventory = new List<Item>();
         public List<Badge> Badges = new List<Badge>();
         public string OsuUsername = "";
+        public bool IsLazy;
+        public int PreferredColor;
 
 
         /// <summary>
@@ -78,25 +80,29 @@ namespace CirclesBot
     {
         public override string Name => "Social Module";
 
-        private Dictionary<ulong, DiscordProfile> discordProfiles = new Dictionary<ulong, DiscordProfile>();
-
-        public int ProfileCount => discordProfiles.Count;
-
         public const string DiscordProfileDirectory = "./Profiles";
+
+        public object profileLock = new object();
 
         public void GetProfile(ulong discordID, Action<DiscordProfile> modifyAction)
         {
-            DiscordProfile profile;
-
-            if(!discordProfiles.TryGetValue(discordID, out profile))
+            lock (profileLock)
             {
-                profile = new DiscordProfile();
-                discordProfiles.Add(discordID, profile);
+                DiscordProfile profile;
+
+                if (File.Exists($"{DiscordProfileDirectory}/{discordID}"))
+                {
+                    profile = JsonConvert.DeserializeObject<DiscordProfile>(File.ReadAllText($"{DiscordProfileDirectory}/{discordID}"));
+                }
+                else
+                {
+                    profile = new DiscordProfile();
+                }
+
+                modifyAction?.Invoke(profile);
+
+                File.WriteAllText($"{DiscordProfileDirectory}/{discordID}", JsonConvert.SerializeObject(profile));
             }
-
-            modifyAction?.Invoke(profile);
-
-            File.WriteAllText($"{DiscordProfileDirectory}/{discordID}", JsonConvert.SerializeObject(profile));
         }
 
         public SocialModule()
@@ -106,27 +112,20 @@ namespace CirclesBot
                 Logger.Log("No profile directory found, creating one", LogLevel.Warning);
                 Directory.CreateDirectory(DiscordProfileDirectory);
             }
-            else
-            {
-                int time = Utils.Benchmark(() =>
+
+            Commands.Add(new Command("View your inventory", (sMsg, buffer) => {
+                string output = "";
+                GetProfile(sMsg.Author.Id, profile =>
                 {
-                    foreach (var file in Directory.GetFiles(DiscordProfileDirectory))
+                    foreach (var item in profile.Inventory)
                     {
-                        FileInfo fi = new FileInfo(file);
-
-                        ulong id = ulong.Parse(fi.Name);
-
-                        DiscordProfile profile = JsonConvert.DeserializeObject<DiscordProfile>(File.ReadAllText(fi.FullName));
-                        discordProfiles.Add(id, profile);
+                        output += $"{item.Icon} : {item.Name} [{item.Description}] -> {item.Damage}\n";
                     }
                 });
-
-                Logger.Log($"Loaded {discordProfiles.Count} profiles it took {time} milliseconds");
-            }
-            Commands.Add(new Command("View your inventory", (sMsg, buffer) => { 
-                
-
-
+                if(output== "")
+                    sMsg.Channel.SendMessageAsync("You have no items sir");
+                else
+                sMsg.Channel.SendMessageAsync(output);
             }, ">inventory", ">inv"));
 
             Commands.Add(new Command("View your profile", (sMsg, buffer) => {

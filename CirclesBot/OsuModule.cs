@@ -103,17 +103,37 @@ namespace CirclesBot
 
         public OsuModule()
         {
-            
-            int time = Utils.Benchmark(() => {
-                BeatmapManager.LoadAllMaps();
-            });
-            Logger.Log($"Loaded {BeatmapManager.CachedMapCount} local beatmaps it took {time} milliseconds", LogLevel.Success);
-            
             banchoAPI = new BanchoAPI(Credentials.OSU_API_KEY);
+
+            Commands.Add(new Command("You are lazy", (sMsg, buffer) => {
+                Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
+                    profile.IsLazy = true;
+                });
+
+                sMsg.Channel.SendMessageAsync("ofc you are :rolling_eyes:");
+            }, ">iamlazy"));
+
+            Commands.Add(new Command("You are not lazy", (sMsg, buffer) => {
+                Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
+                    profile.IsLazy = false;
+                });
+                sMsg.Channel.SendMessageAsync("yes you are but ok ig");
+            }, ">iamnotlazy"));
 
             //Optimized
             Commands.Add(new Command("Shows recent plays for user", (sMsg, buffer) =>
             {
+                if(sMsg.Content.StartsWith("."))
+                {
+                    bool isLazy = false;
+                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
+                        isLazy = profile.IsLazy;
+                    });
+
+                    if (isLazy == false)
+                        return;
+                }
+
                 Stopwatch sw = Stopwatch.StartNew();
 
                 string userToCheck = "";
@@ -186,7 +206,7 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">rs", ">recent"));
+            }, ">rs", ">recent", "."));
 
 
             Commands.Add(new Command("Shows user plays on a specific map", (sMsg, buffer) =>
@@ -448,11 +468,11 @@ namespace CirclesBot
 
                     var ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), 0, 0, 0, 0, Mods.None);
 
-                    double estimatedCount100 = (accuracy.Value / 100.0) / (double)ez.TotalHitObjects;
-
+                                                               //1% hitobjects *       (100 - acc%) = 1%*acc
+                    double estimatedCount100 = ((double)ez.TotalHitObjects / 100.0) * (100.0 - accuracy.Value);
 
                     ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), ez.MaxCombo, (int)Math.Floor(estimatedCount100), 0, 0, mods);
-                    sMsg.Channel.SendMessageAsync($"`FC` with **{accuracy}%** and mods **{mods.ToFriendlyString()}** is: **{ez.PP.ToString("F2")}** on **{ez.SongName} [{ez.DifficultyName}]**");
+                    sMsg.Channel.SendMessageAsync($"**{ez.Accuracy.ToString("F2")}%** and mods **{mods.ToFriendlyString()}** is: **{ez.PP.ToString("F2")}** on **{ez.SongName} [{ez.DifficultyName}]**");
                 }
                 catch (Exception ex)
                 {

@@ -71,9 +71,9 @@ namespace CirclesBot
             Commands.Add(new Command("Enable a command", (sMsg, buffer) => {
                 string commandToEnable = buffer.GetRemaining();
 
-                if (sMsg.Author.Id == Program.BotOwnerID)
+                if (sMsg.Author.Id == BotOwnerID)
                 {
-                    foreach (var module in Program.LoadedModules)
+                    foreach (var module in LoadedModules)
                     {
                         foreach (var command in module.Commands)
                         {
@@ -95,9 +95,9 @@ namespace CirclesBot
                 if (commandToDisable == ">disable" || commandToDisable == ">enable")
                     return;
 
-                if (sMsg.Author.Id == Program.BotOwnerID)
+                if (sMsg.Author.Id == BotOwnerID)
                 {
-                    foreach (var module in Program.LoadedModules)
+                    foreach (var module in LoadedModules)
                     {
                         foreach (var command in module.Commands)
                         {
@@ -135,7 +135,6 @@ namespace CirclesBot
                 desc += $"Downtime: **{Utils.FormatTime(downtimeWatch.Elapsed).Replace("Ago", "")}**\n";
                 desc += $"Guilds: **{Client.Guilds.Count}**\n";
                 desc += $"TotalMembers: **{GetMemberCount()}**\n";
-                desc += $"Beatmaps In Memory: **{BeatmapManager.CachedMapCount}**\n";
                 desc += $"Modules: **{LoadedModules.Count}**\n";
 
                 embed.WithDescription(desc);

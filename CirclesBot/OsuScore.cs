@@ -137,10 +137,16 @@ namespace CirclesBot
             Accuracy = (double)(Count300 * 300.0 + Count100 * 100.0 + Count50 * 50.0) / (double)(objectsEncountered * 300.0);
             Accuracy *= 100.0;
 
-                                      //300 to 100 ratio
-            double expectedCount100 = ((double)Count100 / Count300) * MapTotalHitObjects;
-                                      //300 to 50 ratio
-            double expectedCount50 = ((double)Count50 / Count300) * MapTotalHitObjects;
+            //300 to 100 ratio
+            //double expectedCount100 = ((double)Count100 / Count300) * MapTotalHitObjects;
+            //300 to 50 ratio
+            //double expectedCount50 = ((double)Count50 / Count300) * MapTotalHitObjects;
+
+            //300 to 100 ratio
+            double expectedCount100 = ((double)Count100 * MapTotalHitObjects) / objectsEncountered;
+
+            //300 to 50 ratio
+            double expectedCount50 = ((double)Count50 * MapTotalHitObjects) / objectsEncountered;
 
             ezpp = EZPP.Calculate(beatmap, ezpp.MaxCombo, (int)Math.Floor(expectedCount100), (int)Math.Floor(expectedCount50), 0, EnabledMods);
 
