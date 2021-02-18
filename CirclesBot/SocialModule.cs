@@ -206,26 +206,6 @@ namespace CirclesBot
 
                 return Task.Delay(0);
             };
-
-            Program.Client.UserJoined += (s) =>
-            {
-                if (!s.IsBot)
-                    GetProfile(s.Id, null);
-
-                return Task.Delay(0);
-            };
-
-            Program.Client.GuildAvailable += (s) =>
-            {
-                foreach (var user in s.Users)
-                {
-                    if (!user.IsBot)
-                        GetProfile(user.Id, null);
-                }
-                Console.WriteLine(s.Users.Count);
-
-                return Task.Delay(0);
-            };
         }
     }
 }

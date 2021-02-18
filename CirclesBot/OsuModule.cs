@@ -103,7 +103,7 @@ namespace CirclesBot
 
         public OsuModule()
         {
-            banchoAPI = new BanchoAPI(Credentials.OSU_API_KEY);
+            banchoAPI = new BanchoAPI(Program.Credentials.OSU_API_KEY);
 
             Commands.Add(new Command("You are lazy", (sMsg, buffer) => {
                 Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {

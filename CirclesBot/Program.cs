@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
+using Newtonsoft.Json;
 
 namespace CirclesBot
 {
@@ -26,10 +28,9 @@ namespace CirclesBot
 
         public static readonly string[] RandomQuirkyResponses = new string[] {
                 "I agree!", "Thats stupid", "Please tell us more",
-                "I sense a lie", "The person above me is speaking straight facts",
+                "The person above me is speaking straight facts",
                 "No cap", "Haha", "Funny", "Error", "True", ":sunglasses:",
-                "This is not true", "I laughed", /*"What did the cat say to the mouse?\n||Nothing cats can't speak. Idiot||",*/
-                //Low effort
+                "This is not true", "I laughed",
                 "727", "dab", "kappa", "lol", "lmao", "owo", "uwu", "yep", "cool", "nice play", "nice cock",
                 "i rate 1/10", "i rate 2/10", "i rate 3/10","i rate 4/10","i rate 5/10","i rate 6/10","i rate 7/10", "i rate 8/10", "i rate 9/10", "i rate 10/10",
                 "you lost", "cock", "penis", "bye", "hello", "calm down", "it burns", "for real tho", "bro", "i guess",
@@ -44,6 +45,8 @@ namespace CirclesBot
 
         private static Stopwatch uptimeWatch = new Stopwatch();
         private static Stopwatch downtimeWatch = new Stopwatch();
+
+        public static Credentials Credentials;
 
         public static int GetMemberCount()
         {
@@ -201,6 +204,22 @@ namespace CirclesBot
 
         static void Main(string[] args)
         {
+            if (!File.Exists("./Credentials.txt"))
+            {
+                Logger.Log("No credentials, please put your credentials into Credentials.txt. Press enter when you have done that.");
+                File.WriteAllText("./Credentials.txt", JsonConvert.SerializeObject(new Credentials()));
+                Console.ReadLine();
+            }
+
+            Credentials = JsonConvert.DeserializeObject<Credentials>(File.ReadAllText("./Credentials.txt"));
+
+            if(String.IsNullOrEmpty(Credentials.DISCORD_API_KEY))
+            {
+                Logger.Log("You need to enter a discord api key into the Credentials.txt file.", LogLevel.Error);
+                Console.ReadLine();
+                Environment.Exit(0);
+            }
+
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             Logger.Log("Running bot!");
@@ -317,7 +336,7 @@ namespace CirclesBot
                 return Task.Delay(0);
             };
 
-            Client.LoginAsync(TokenType.Bot, Credentials.DISCORD_API_KEY_DEVELOPMENT);
+            Client.LoginAsync(TokenType.Bot, Credentials.DISCORD_API_KEY);
             Logger.Log("Logging in...");
             Client.StartAsync();
 
