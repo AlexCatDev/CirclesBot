@@ -24,11 +24,8 @@ namespace CirclesBot
     {
         public override string Name => "osu! Module";
 
-        //(ulong: Discord channel id), (ulong: osu! beatmap id)
-        private Dictionary<ulong, ulong> discordChannelToBeatmap = new Dictionary<ulong, ulong>();
-
-        //(ulong: Discord channel id), (self explainatory, fix to OsuScore soon?)
-        private Dictionary<ulong, List<BanchoAPI.BanchoBestScore>> discordChannelToBeatmapTop = new Dictionary<ulong, List<BanchoAPI.BanchoBestScore>>();
+        //(ulong: Discord channel id), (self explainatory)
+        private Dictionary<ulong, List<OsuScore>> channelToScores = new Dictionary<ulong, List<OsuScore>>();
 
         private BanchoAPI banchoAPI;
 
@@ -61,18 +58,12 @@ namespace CirclesBot
                 if(!score.IsFC)
                     isFCInfo = $" ({score.PP_IF_FC.ToString("F2")}PP for {score.IF_FC_Accuracy.ToString("F2")}% FC)";
 
-                temp += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]";
-
-                if (Utils.GetRandomChance(1))
-                    temp += ":tada:";
-
-                temp += "\n";
-
+                temp += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]\n";
                 temp += $"▸ {Utils.GetEmoteForRankLetter(score.RankingLetter)} ▸ **{score.PP.ToString("F2")}PP**{isFCInfo} ▸ {score.Accuracy.ToString("F2")}%\n";
                 temp += $"▸ {score.Score} ▸ x{score.MaxCombo}/{score.MapMaxCombo} ▸ [{score.Count300}/{score.Count100}/{score.Count50}/{score.CountMiss}]\n";
                 temp += $"▸ **AR:** {score.AR.ToString("F1")} **OD:** {score.OD.ToString("F1")} **HP:** {score.HP.ToString("F1")} **CS:** {score.CS.ToString("F1")} ▸ **BPM:** {score.BPM.ToString("F0")}\n";
 
-                if (!score.IsPass)
+                if (score.IsPass == false)
                     temp += $"▸ **Map Completion:** {score.CompletionPercentage.ToString("F2")}%\n";
 
                 temp += $"▸ Score set {Utils.FormatTime(DateTime.UtcNow - score.Date)} On {score.Server}\n";
@@ -137,27 +128,35 @@ namespace CirclesBot
             return username;
         }
 
+        public void RememberScores(ulong channelID, List<OsuScore> scores)
+        {
+            if (channelToScores.ContainsKey(channelID))
+                channelToScores[channelID] = scores;
+            else
+                channelToScores.Add(channelID, scores);
+        }
+
         public OsuModule()
         {
             banchoAPI = new BanchoAPI(Program.Credentials.OSU_API_KEY);
 
-            Commands.Add(new Command("You are lazy", (sMsg, buffer) => {
+            AddCMD("You are lazy", (sMsg, buffer) => {
                 Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
                     profile.IsLazy = true;
                 });
 
                 sMsg.Channel.SendMessageAsync("ofc you are :rolling_eyes:");
-            }, ">iamlazy"));
+            }, ">iamlazy");
 
-            Commands.Add(new Command("You are not lazy", (sMsg, buffer) => {
+            AddCMD("You are not lazy", (sMsg, buffer) => {
                 Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
                     profile.IsLazy = false;
                 });
                 sMsg.Channel.SendMessageAsync("yes you are but ok ig");
-            }, ">iamnotlazy"));
+            }, ">iamnotlazy");
 
             //Optimized
-            Commands.Add(new Command("Shows recent plays for user", (sMsg, buffer) =>
+            AddCMD("Shows recent plays for user", (sMsg, buffer) =>
             {
                 if(sMsg.Content.StartsWith("."))
                 {
@@ -188,11 +187,6 @@ namespace CirclesBot
                     return;
                 }
 
-                if (discordChannelToBeatmap.ContainsKey(sMsg.Channel.Id))
-                    discordChannelToBeatmap[sMsg.Channel.Id] = recentUserPlays[0].BeatmapID;
-                else
-                    discordChannelToBeatmap.Add(sMsg.Channel.Id, recentUserPlays[0].BeatmapID);
-
                 List<OsuScore> kek = new List<OsuScore>();
 
                 foreach (var rup in recentUserPlays)
@@ -200,11 +194,13 @@ namespace CirclesBot
                     kek.Add(new OsuScore(BeatmapManager.GetBeatmap(rup.BeatmapID), rup));
                 }
 
-                EmbedBuilder embedBuilder = CreateScoresEmbed(kek);
+                    RememberScores(sMsg.Channel.Id, kek);
+
+                    EmbedBuilder embedBuilder = CreateScoresEmbed(kek);
 
                 embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapSetID(BeatmapManager.GetBeatmap(kek[0].BeatmapID)).ToString()));
 
-                    embedBuilder.WithAuthor($"Recent Plays for {userToCheck}", BanchoAPI.GetProfileImageUrl(recentUserPlays[0].UserID.ToString()));
+                    embedBuilder.WithAuthor($"Recent Plays for {userToCheck}[https://osu.ppy.sh/users/{userToCheck}]", BanchoAPI.GetProfileImageUrl(recentUserPlays[0].UserID.ToString()));
 
                     sMsg.Channel.SendMessageAsync("", false, embedBuilder.Build());
                 }
@@ -213,10 +209,10 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">rs", ">recent", "."));
+            }, ">rs", ">recent", ".");
 
 
-            Commands.Add(new Command("Shows user plays on a specific map", (sMsg, buffer) =>
+            AddCMD("Shows user plays on a specific map", (sMsg, buffer) =>
             {
                 bool ripple = buffer.HasParameter("-ripple");
                 string beatmap = buffer.GetParameter("https://osu.ppy.sh/beatmapsets/");
@@ -250,17 +246,14 @@ namespace CirclesBot
                         return;
                     }
 
-                    if (discordChannelToBeatmap.ContainsKey(sMsg.Channel.Id))
-                        discordChannelToBeatmap[sMsg.Channel.Id] = beatmapID;
-                    else
-                        discordChannelToBeatmap.Add(sMsg.Channel.Id, beatmapID);
-
                     List<OsuScore> kek = new List<OsuScore>();
 
                     foreach (var rup in userPlays)
                     {
                         kek.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID), rup, beatmapID));
                     }
+
+                    RememberScores(sMsg.Channel.Id, kek);
 
                     EmbedBuilder embedBuilder = CreateScoresEmbed(kek);
 
@@ -275,13 +268,17 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">scores", ">sc"));
+            }, ">scores", ">sc");
 
-            Commands.Add(new Command("Shows top plays for user", (sMsg, buffer) =>
+            AddCMD("Shows top plays for user", (sMsg, buffer) =>
             {
                 bool showRecent = buffer.HasParameter("-r");
 
                 bool isRipple = buffer.HasParameter("-ripple");
+
+                bool justCheckPPCountPlays = buffer.HasParameter("-g");
+
+                double? ppToCheck = buffer.GetDouble();
 
                 string userToCheck = DecipherOsuUsername(sMsg, buffer);
 
@@ -302,6 +299,27 @@ namespace CirclesBot
                         return;
                     }
 
+                    if (justCheckPPCountPlays)
+                    {
+                        if (ppToCheck.HasValue)
+                        {
+                            int count = 0;
+                            foreach (var item in bestUserPlays)
+                            {
+                                if (item.PP >= ppToCheck.Value)
+                                    count++;
+                            }
+
+                            sMsg.Channel.SendMessageAsync($"`{userToCheck}` **has {count} plays worth more than {ppToCheck.Value.ToString("F")}PP**");
+                            return;
+                        }
+                        else
+                        {
+                            sMsg.Channel.SendMessageAsync($">osutop -g 69");
+                            return;
+                        }
+                    }
+
                     if (showRecent)
                         bestUserPlays.Sort((x, y) => DateTime.Compare(y.DateOfPlay, x.DateOfPlay));
                     else
@@ -314,15 +332,14 @@ namespace CirclesBot
                     }
                     catch { }
 
-                    discordChannelToBeatmapTop.LazyAdd(sMsg.Channel.Id, bestUserPlays);
-
-
                     List<OsuScore> kek = new List<OsuScore>();
                     for (int i = 0; i < bestUserPlays.Count; i++)
                     {
                         var play = bestUserPlays[i];
                         kek.Add(new OsuScore(BeatmapManager.GetBeatmap(play.BeatmapID), play));
                     }
+
+                    RememberScores(sMsg.Channel.Id, kek);
 
                     embedBuilder = CreateScoresEmbed(kek);
                     string recent = showRecent ? "Recent " : "";
@@ -335,9 +352,9 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">top", ">osutop"));
+            }, ">top", ">osutop");
 
-            Commands.Add(new Command("Get PP For fc", (sMsg, buffer) =>
+            AddCMD("Get PP For fc", (sMsg, buffer) =>
             {
                 buffer.Discard("%");
 
@@ -370,20 +387,22 @@ namespace CirclesBot
                 }
                 else
                 {
-
                     //string mds = buffer.GetRemaining().Split(;
-
                     if (indexToCheck == null)
                     {
-                        if (!discordChannelToBeatmap.TryGetValue(sMsg.Channel.Id, out beatmapID))
+                        if (!channelToScores.TryGetValue(sMsg.Channel.Id, out List<OsuScore> scores))
                         {
                             sMsg.Channel.SendMessageAsync("No beatmap found in conversation");
                             return;
                         }
+                        else
+                        {
+                            beatmapID = scores[0].BeatmapID;
+                        }
                     }
                     else
                     {
-                        if (!discordChannelToBeatmapTop.TryGetValue(sMsg.Channel.Id, out List<BanchoAPI.BanchoBestScore> bestPlays))
+                        if (!channelToScores.TryGetValue(sMsg.Channel.Id, out List<OsuScore> scores))
                         {
                             sMsg.Channel.SendMessageAsync("No beatmap top found in conversation");
                             return;
@@ -391,12 +410,7 @@ namespace CirclesBot
                         else
                         {
                             indexToCheck = Math.Max(indexToCheck.Value - 1, 0);
-                            beatmapID = bestPlays[Math.Min(bestPlays.Count, indexToCheck.Value)].BeatmapID;
-
-                            if (discordChannelToBeatmap.ContainsKey(sMsg.Channel.Id))
-                                discordChannelToBeatmap[sMsg.Channel.Id] = beatmapID;
-                            else
-                                discordChannelToBeatmap.Add(sMsg.Channel.Id, beatmapID);
+                            beatmapID = scores[Math.Min(scores.Count, indexToCheck.Value)].BeatmapID;
                         }
                     }
                 }
@@ -414,11 +428,11 @@ namespace CirclesBot
                     }
 
                     if (!hasMods)
-                        mods = Mods.None;
+                        mods = channelToScores[sMsg.Channel.Id][0].EnabledMods;
 
                     var ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), 0, 0, 0, 0, Mods.None);
 
-                                                               //1% hitobjects *       (100 - acc%) = 1%*acc
+                                                                    //1% hitobjects * (100 - acc%) = 1%*acc
                     double estimatedCount100 = ((double)ez.TotalHitObjects / 100.0) * (100.0 - accuracy.Value);
 
                     ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), ez.MaxCombo, (int)Math.Floor(estimatedCount100), 0, 0, mods);
@@ -430,9 +444,9 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">pp", ">fc"));
+            }, ">pp", ">fc");
 
-            Commands.Add(new Command("Compares plays for user", (sMsg, buffer) =>
+            AddCMD("Compares plays for user", (sMsg, buffer) =>
             {
                 bool isRipple = buffer.HasParameter("-ripple");
 
@@ -447,15 +461,19 @@ namespace CirclesBot
 
                 if (indexToCheck == null)
                 {
-                    if (!discordChannelToBeatmap.TryGetValue(sMsg.Channel.Id, out beatmapID))
+                    if (!channelToScores.TryGetValue(sMsg.Channel.Id, out List<OsuScore> scores))
                     {
                         sMsg.Channel.SendMessageAsync("No beatmap found in conversation");
                         return;
                     }
+                    else
+                    {
+                        beatmapID = scores[0].BeatmapID;
+                    }
                 }
                 else
                 {
-                    if (!discordChannelToBeatmapTop.TryGetValue(sMsg.Channel.Id, out List<BanchoAPI.BanchoBestScore> bestPlays))
+                    if (!channelToScores.TryGetValue(sMsg.Channel.Id, out List<OsuScore> scores))
                     {
                         sMsg.Channel.SendMessageAsync("No beatmap top found in conversation");
                         return;
@@ -463,12 +481,7 @@ namespace CirclesBot
                     else
                     {
                         indexToCheck = Math.Max(indexToCheck.Value - 1, 0);
-                        beatmapID = bestPlays[Math.Min(bestPlays.Count, indexToCheck.Value)].BeatmapID;
-
-                        if (discordChannelToBeatmap.ContainsKey(sMsg.Channel.Id))
-                            discordChannelToBeatmap[sMsg.Channel.Id] = beatmapID;
-                        else
-                            discordChannelToBeatmap.Add(sMsg.Channel.Id, beatmapID);
+                        beatmapID = scores[Math.Min(scores.Count, indexToCheck.Value)].BeatmapID;
                     }
                 }
 
@@ -509,9 +522,9 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">c", ">compare"));
+            }, ">c", ">compare");
 
-            Commands.Add(new Command("Shows your osu profile or someone elses", (sMsg, buffer) =>
+            AddCMD("Shows your osu profile or someone elses", (sMsg, buffer) =>
             {
                 bool isRipple = buffer.HasParameter("-ripple");
 
@@ -539,10 +552,10 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">osu"));
+            }, ">osu");
 
 
-            Commands.Add(new Command("Sets your osu user", (sMsg, buffer) =>
+            AddCMD("Sets your osu user", (sMsg, buffer) =>
             {
                 string[] user = sMsg.Content.Split(' ');
                 if (user.Length > 1)
@@ -557,7 +570,7 @@ namespace CirclesBot
                 {
                     sMsg.Channel.SendMessageAsync("Atleast type something like... i dunno? Your fucking **osu!** username?");
                 }
-            }, ">osuset", ">set"));
+            }, ">osuset", ">set");
         }
     }
 }

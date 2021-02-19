@@ -69,7 +69,7 @@ namespace CirclesBot
 
         public Program()
         {
-            Commands.Add(new Command("Enable a command", (sMsg, buffer) => {
+            AddCMD("Enable a command", (sMsg, buffer) => {
                 string commandToEnable = buffer.GetRemaining();
 
                 if (sMsg.Author.Id == BotOwnerID)
@@ -88,9 +88,9 @@ namespace CirclesBot
                     }
                     sMsg.Channel.SendMessageAsync($"{commandToEnable} no such command found");
                 }
-            }, ">enable"));
+            }, ">enable");
 
-            Commands.Add(new Command("Disable a command", (sMsg, buffer) => {
+            AddCMD("Disable a command", (sMsg, buffer) => {
                 string commandToDisable = buffer.GetRemaining();
 
                 if (commandToDisable == ">disable" || commandToDisable == ">enable")
@@ -112,9 +112,9 @@ namespace CirclesBot
                     }
                     sMsg.Channel.SendMessageAsync($"{commandToDisable} no such command found");
                 }
-            }, ">disable"));
+            }, ">disable");
 
-            Commands.Add(new Command("Shows bot info", (sMsg, buffer) =>
+            AddCMD("Shows bot info", (sMsg, buffer) =>
             {
                 var runtimeVer = RuntimeInformation.FrameworkDescription;
 
@@ -142,10 +142,10 @@ namespace CirclesBot
                 embed.WithColor(Color.Blue);
                 //embed.WithFooter($"Started {Utils.FormatTime(uptimeWatch.Elapsed)}");
                 sMsg.Channel.SendMessageAsync("", false, embed.Build());
-            }, ">info"));
+            }, ">info");
 
             //This is very ugly
-            Commands.Add(new Command("Shows this embed", (sMsg, buffer) =>
+            AddCMD("Shows this embed", (sMsg, buffer) =>
             {
                 Pages commandPages = new Pages();
 
@@ -196,7 +196,7 @@ namespace CirclesBot
                 //eb.WithDescription(desc);
                 //eb.WithColor(Color.Green);
                 PagesHandler.SendPages(sMsg.Channel, commandPages);
-            }, ">help"));
+            }, ">help");
         }
 
 

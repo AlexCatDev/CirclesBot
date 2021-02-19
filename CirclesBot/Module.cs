@@ -53,6 +53,11 @@ namespace CirclesBot
     {
         public List<Command> Commands = new List<Command>();
 
+        public void AddCMD(string description, Action<SocketMessage, CommandBuffer> onCommand, params string[] triggers)
+        {
+            Commands.Add(new Command(description, onCommand, triggers));
+        }
+
         public abstract string Name { get; }
     }
 }

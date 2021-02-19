@@ -69,7 +69,7 @@ namespace CirclesBot
 
             for (int i = 1; i < level; i++)
             {
-                total += Math.Floor(i + 300 * Math.Pow(2, i / 7.0));;
+                total += Math.Floor(i + 300 * Math.Pow(2, i / 7.0));
             }
 
             return (ulong)Math.Floor(total / 4.0);
@@ -113,7 +113,7 @@ namespace CirclesBot
                 Directory.CreateDirectory(DiscordProfileDirectory);
             }
 
-            Commands.Add(new Command("View your inventory", (sMsg, buffer) => {
+            AddCMD("View your inventory", (sMsg, buffer) => {
                 string output = "";
                 GetProfile(sMsg.Author.Id, profile =>
                 {
@@ -126,9 +126,9 @@ namespace CirclesBot
                     sMsg.Channel.SendMessageAsync("You have no items sir");
                 else
                 sMsg.Channel.SendMessageAsync(output);
-            }, ">inventory", ">inv"));
+            }, ">inventory", ">inv");
 
-            Commands.Add(new Command("View your profile", (sMsg, buffer) => {
+            AddCMD("View your profile", (sMsg, buffer) => {
                 Discord.WebSocket.SocketUser userToCheck;
 
                 if (sMsg.MentionedUsers.Count > 0)
@@ -167,9 +167,9 @@ namespace CirclesBot
                     builder.WithFooter($"Bot Creator");
 
                 sMsg.Channel.SendMessageAsync("", false, builder.Build());
-            }, ">profile", ">pf"));
+            }, ">profile", ">pf");
 
-            Commands.Add(new Command("Gives you the desired item", (sMsg, buffer) => {
+            AddCMD("Gives you the desired item", (sMsg, buffer) => {
                 string item = buffer.GetRemaining();
                 if (sMsg.Author.Id == Program.BotOwnerID)
                 {
@@ -190,7 +190,7 @@ namespace CirclesBot
                 {
                     sMsg.Channel.SendMessageAsync("no");
                 }
-            }, ">giveitem"));
+            }, ">giveitem");
 
             Program.Client.MessageReceived += (s) =>
             {

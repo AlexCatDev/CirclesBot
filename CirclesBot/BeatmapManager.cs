@@ -57,7 +57,7 @@ namespace CirclesBot
                         });
                         Logger.Log($"\tIt took {time} milliseconds IsRanked: {isRanked}", LogLevel.Success);
 
-                        if (isRanked)
+                        if (true)
                         {
                             string filename = $"{id}";
 
