@@ -82,6 +82,8 @@ namespace CirclesBot
 
         public override string Name => "Main Module";
 
+        public override int Order => 2;
+
         public Program()
         {
             AddCMD("Enable a command", (sMsg, buffer) => {
@@ -152,6 +154,7 @@ namespace CirclesBot
                 desc += $"Offline-Time: **{Utils.FormatTime(offlineWatch.Elapsed, ago: false)}**\n";
                 desc += $"Serving: **{Client.Guilds.Count} Guilds And {GetMemberCount()} Members**\n";
                 desc += $"Commands Handled: **{TotalCommandsHandled}**\n";
+                desc += $"Bancho API Calls: **{BanchoAPI.TotalAPICalls}**\n";
                 desc += $"Loaded Modules: **{LoadedModules.Count}**\n";
 
                 embed.WithDescription(desc);
@@ -268,6 +271,8 @@ namespace CirclesBot
                         }
                     }
                 }
+
+                LoadedModules.Sort((x, y) => x.Order.CompareTo(y.Order));
             });
 
             Logger.Log($"Modules took {time} milliseconds to load");

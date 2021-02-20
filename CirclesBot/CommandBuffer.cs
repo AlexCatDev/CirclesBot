@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace CirclesBot
 {
     /// <summary>
-    /// This class acts kinda like queue, every parameter check removes the underlying string from the buffer so YOU dont have to keep track of it
+    /// This class acts kinda like queue, every parameter check removes the underlying string (if eligible) from the buffer.
     /// </summary>
     public struct CommandBuffer
     {
@@ -28,7 +28,7 @@ namespace CirclesBot
             }
         }
 
-        public string GetRemaining(bool concatSpaces = true)
+        public string GetRemaining(string spaceString = "_")
         {
             string output = "";
             for (int i = 0; i < buffer.Count; i++)
@@ -37,11 +37,8 @@ namespace CirclesBot
 
                 output += buffer[i];
 
-                if (concatSpaces)
-                {
-                    if (!isLast)
-                        output += "_";
-                }
+                if (!isLast)
+                    output += spaceString;
             }
 
             return output;
@@ -52,6 +49,34 @@ namespace CirclesBot
             foreach (var str in buffer)
             {
                 if(int.TryParse(str, out int result))
+                {
+                    buffer.Remove(str);
+                    return result;
+                }
+            }
+
+            return null;
+        }
+
+        public long? GetLong()
+        {
+            foreach (var str in buffer)
+            {
+                if (long.TryParse(str, out long result))
+                {
+                    buffer.Remove(str);
+                    return result;
+                }
+            }
+
+            return null;
+        }
+
+        public ulong? GetULong()
+        {
+            foreach (var str in buffer)
+            {
+                if (ulong.TryParse(str, out ulong result))
                 {
                     buffer.Remove(str);
                     return result;

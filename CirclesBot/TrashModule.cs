@@ -10,9 +10,11 @@ using System.Threading.Tasks;
 namespace CirclesBot
 {
     //i dont even wanna touch this
-    public class MiscModule : Module
+    public class TrashModule : Module
     {
-        public override string Name => "Misc Module";
+        public override string Name => "Trash Module";
+
+        public override int Order => 3;
 
         class CallAcceptEmote : IEmote
         {
@@ -34,7 +36,7 @@ namespace CirclesBot
 
         private List<CallObject> activeCalls = new List<CallObject>();
 
-        public MiscModule()
+        public TrashModule()
         {
             AddCMD("Convert decimal number to binary", (sMsg, buffer) => {
                 string binary = Convert.ToString(int.Parse(buffer.GetRemaining()), 2);

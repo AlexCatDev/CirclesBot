@@ -80,6 +80,8 @@ namespace CirclesBot
     {
         public override string Name => "Social Module";
 
+        public override int Order => 1;
+
         public const string DiscordProfileDirectory = "./Profiles";
 
         public object profileLock = new object();
@@ -224,7 +226,7 @@ namespace CirclesBot
 
             AddCMD("Set your xp", (sMsg, buffer) =>
             {
-                ulong? xp = (ulong?)buffer.GetInt();
+                ulong? xp = buffer.GetULong();
 
                 Discord.WebSocket.SocketUser userToCheck;
 
@@ -273,7 +275,7 @@ namespace CirclesBot
                             profile.XP += (ulong)Utils.GetRandomNumber(50, 200);
                             if(lvl == 98 && profile.Level == 99)
                             {
-                                s.Channel.SendMessageAsync($"**Congratz on level 99!!! Now get a fucking life**\n{Program.XD}");
+                                s.Channel.SendMessageAsync($"{s.Author.Mention}\n**Congratz on level 99!!! Now get a fucking life**\n{Program.XD}");
                             }
                         }
                     });

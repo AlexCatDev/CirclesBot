@@ -14,7 +14,7 @@ namespace CirclesBot
 
         private string apiKey;
 
-        public int TotalAPICalls = 0;
+        public static int TotalAPICalls = 0;
 
         public BanchoAPI(string apiKey)
         {

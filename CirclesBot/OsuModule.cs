@@ -24,10 +24,12 @@ namespace CirclesBot
     {
         public override string Name => "osu! Module";
 
+        public override int Order => 0;
+
         //(ulong: Discord channel id), (self explainatory)
         private Dictionary<ulong, List<OsuScore>> channelToScores = new Dictionary<ulong, List<OsuScore>>();
 
-        private BanchoAPI banchoAPI;
+        private BanchoAPI banchoAPI = new BanchoAPI(Program.Config.OSU_API_KEY);
 
         private EmbedBuilder CreateProfileEmbed(OsuProfile osuProfile)
         {
@@ -54,8 +56,8 @@ namespace CirclesBot
                 string temp = "";
 
                 string isFCInfo = "";
- 
-                if(!score.IsFC)
+
+                if (!score.IsFC)
                     isFCInfo = $" ({score.PP_IF_FC.ToString("F2")}PP for {score.IF_FC_Accuracy.ToString("F2")}% FC)";
 
                 temp += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]\n";
@@ -79,15 +81,11 @@ namespace CirclesBot
                 }
             }
 
-            
-
             embedBuilder.WithDescription(description);
 
             embedBuilder.WithFooter($"Plays shown: {count}/{scores.Count}");
 
             embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
-
-
 
             return embedBuilder;
         }
@@ -97,7 +95,8 @@ namespace CirclesBot
             string username = "";
             if (sMsg.MentionedUsers.Count > 0)
             {
-                Program.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id, profile => {
+                Program.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id, profile =>
+                {
                     username = profile.OsuUsername;
                 });
 
@@ -113,7 +112,8 @@ namespace CirclesBot
 
             if (username == "")
             {
-                Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
+                Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
+                {
                     username = profile.OsuUsername;
                 });
 
@@ -123,7 +123,6 @@ namespace CirclesBot
                     return null;
                 }
             }
-
 
             return username;
         }
@@ -138,18 +137,20 @@ namespace CirclesBot
 
         public OsuModule()
         {
-            banchoAPI = new BanchoAPI(Program.Config.OSU_API_KEY);
-
-            AddCMD("You are lazy", (sMsg, buffer) => {
-                Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
+            AddCMD("You are lazy", (sMsg, buffer) =>
+            {
+                Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
+                {
                     profile.IsLazy = true;
                 });
 
                 sMsg.Channel.SendMessageAsync("ofc you are :rolling_eyes:");
             }, ">iamlazy");
 
-            AddCMD("You are not lazy", (sMsg, buffer) => {
-                Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
+            AddCMD("You are not lazy", (sMsg, buffer) =>
+            {
+                Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
+                {
                     profile.IsLazy = false;
                 });
                 sMsg.Channel.SendMessageAsync("yes you are but ok ig");
@@ -158,10 +159,11 @@ namespace CirclesBot
             //Optimized
             AddCMD("Shows recent plays for user", (sMsg, buffer) =>
             {
-                if(sMsg.Content.StartsWith("."))
+                if (sMsg.Content.StartsWith("."))
                 {
                     bool isLazy = false;
-                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
+                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
+                    {
                         isLazy = profile.IsLazy;
                     });
 
@@ -177,28 +179,28 @@ namespace CirclesBot
 
                 Logger.Log($"getting recent plays for '{userToCheck}'", LogLevel.Info);
 
-            try
-            {
-                List<BanchoAPI.BanchoRecentScore> recentUserPlays = banchoAPI.GetRecentPlays(userToCheck, showList ? 20 : 1);
-
-                if (recentUserPlays.Count == 0)
+                try
                 {
-                    sMsg.Channel.SendMessageAsync($"**{userToCheck} don't have any recent plays** <:sadChamp:593405356864962560>");
-                    return;
-                }
+                    List<BanchoAPI.BanchoRecentScore> recentUserPlays = banchoAPI.GetRecentPlays(userToCheck, showList ? 20 : 1);
 
-                List<OsuScore> kek = new List<OsuScore>();
+                    if (recentUserPlays.Count == 0)
+                    {
+                        sMsg.Channel.SendMessageAsync($"**{userToCheck} don't have any recent plays** <:sadChamp:593405356864962560>");
+                        return;
+                    }
 
-                foreach (var rup in recentUserPlays)
-                {
-                    kek.Add(new OsuScore(BeatmapManager.GetBeatmap(rup.BeatmapID), rup));
-                }
+                    List<OsuScore> kek = new List<OsuScore>();
+
+                    foreach (var rup in recentUserPlays)
+                    {
+                        kek.Add(new OsuScore(BeatmapManager.GetBeatmap(rup.BeatmapID), rup));
+                    }
 
                     RememberScores(sMsg.Channel.Id, kek);
 
                     EmbedBuilder embedBuilder = CreateScoresEmbed(kek);
 
-                embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(kek[0].BeatmapID)).ToString()));
+                    embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(kek[0].BeatmapID)).ToString()));
 
                     embedBuilder.WithAuthor($"Recent Plays for {userToCheck}", BanchoAPI.GetProfileImageUrl(recentUserPlays[0].UserID.ToString()));
 
@@ -292,7 +294,7 @@ namespace CirclesBot
                 try
                 {
                     List<BanchoAPI.BanchoBestScore> bestUserPlays = banchoAPI.GetBestPlays(userToCheck, 100);
-                    
+
                     if (bestUserPlays.Count == 0)
                     {
                         sMsg.Channel.SendMessageAsync($"**{userToCheck} doesn't have any top plays** :face_with_raised_eyebrow:");
@@ -358,7 +360,7 @@ namespace CirclesBot
             {
                 buffer.Discard("%");
 
-                int? indexToCheck = buffer.GetInt();
+                int? indexToCheck = (int?)buffer.GetInt();
 
                 double? accuracy = buffer.GetDouble();
 
@@ -421,7 +423,7 @@ namespace CirclesBot
 
                 try
                 {
-                    if(accuracy == null)
+                    if (accuracy == null)
                     {
                         sMsg.Channel.SendMessageAsync("Example: >pp 98.5% HDDT");
                         return;
@@ -432,7 +434,7 @@ namespace CirclesBot
 
                     var ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), 0, 0, 0, 0, Mods.None);
 
-                                                                    //idk how this works, but it just does
+                    //idk how this works, but it just does
                     double estimatedCount100 = ((double)ez.TotalHitObjects / 66.7) * (100.0 - accuracy.Value);
 
                     ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), ez.MaxCombo, (int)Math.Ceiling(estimatedCount100), 0, 0, mods);
@@ -450,7 +452,7 @@ namespace CirclesBot
             {
                 bool isRipple = buffer.HasParameter("-ripple");
 
-                int? indexToCheck = buffer.GetInt();
+                int? indexToCheck = (int?)buffer.GetInt();
 
                 ulong beatmapID = 0;
 
@@ -546,7 +548,7 @@ namespace CirclesBot
                     embedBuilder.WithAuthor($"osu! Profile For {userToCheck}", BanchoAPI.GetFlagImageUrl(user.Country));
 
                     embedBuilder.WithThumbnailUrl(BanchoAPI.GetProfileImageUrl(user.ID.ToString()));
-                    embedBuilder.WithFooter($"On {profile.Server}"); 
+                    embedBuilder.WithFooter($"On {profile.Server}");
                     sMsg.Channel.SendMessageAsync("", false, embedBuilder.Build());
                 }
                 catch (Exception ex)
@@ -562,7 +564,8 @@ namespace CirclesBot
                 string[] user = sMsg.Content.Split(' ');
                 if (user.Length > 1)
                 {
-                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
+                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
+                    {
                         profile.OsuUsername = user[1];
                     });
 

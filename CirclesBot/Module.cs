@@ -45,7 +45,6 @@ namespace CirclesBot
                 {
                     userMsg.Channel.SendMessageAsync("This command has been disabled by the bot owner");
                 }
-
             }
         }
     }
@@ -60,5 +59,6 @@ namespace CirclesBot
         }
 
         public abstract string Name { get; }
+        public abstract int Order { get; }
     }
 }
