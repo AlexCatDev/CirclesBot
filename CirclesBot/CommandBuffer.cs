@@ -28,7 +28,7 @@ namespace CirclesBot
             }
         }
 
-        public string GetRemaining()
+        public string GetRemaining(bool concatSpaces = true)
         {
             string output = "";
             for (int i = 0; i < buffer.Count; i++)
@@ -36,8 +36,12 @@ namespace CirclesBot
                 bool isLast = i == buffer.Count - 1;
 
                 output += buffer[i];
-                if (!isLast)
-                    output += "_";
+
+                if (concatSpaces)
+                {
+                    if (!isLast)
+                        output += "_";
+                }
             }
 
             return output;
