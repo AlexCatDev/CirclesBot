@@ -36,19 +36,19 @@ namespace CirclesBot
 
         public MiscModule()
         {
-            Commands.Add(new Command("Convert decimal number to binary", (sMsg, buffer) => {
+            AddCMD("Convert decimal number to binary", (sMsg, buffer) => {
                 string binary = Convert.ToString(int.Parse(buffer.GetRemaining()), 2);
                 sMsg.Channel.SendMessageAsync($"**{binary}**");
 
-            }, ">d", ">decimaltobinary", ">dtb"));
+            }, ">d", ">decimaltobinary", ">dtb");
 
-            Commands.Add(new Command("Convert binary number to decimal", (sMsg, buffer) => {
+            AddCMD("Convert binary number to decimal", (sMsg, buffer) => {
                 int val = Convert.ToInt32(buffer.GetRemaining(), 2);
                 sMsg.Channel.SendMessageAsync($"**{val}**");
 
-            }, ">b", ">binarytodecimal", ">btd"));
+            }, ">b", ">binarytodecimal", ">btd");
 
-            Commands.Add(new Command("Convert binary to chars", (sMsg, buffer) => {
+            AddCMD("Convert binary to chars", (sMsg, buffer) => {
                 var list = new System.Collections.Generic.List<Byte>();
                 string binary = buffer.GetRemaining();
 
@@ -72,23 +72,23 @@ namespace CirclesBot
                 else
                     sMsg.Channel.SendMessageAsync($"**{output}**");
 
-            }, ">char", ">chars", ">string"));
+            }, ">char", ">chars", ">string");
 
-            Commands.Add(new Command("Convert hex to decimal", (sMsg, buffer) => {
+            AddCMD("Convert hex to decimal", (sMsg, buffer) => {
                 int val = Convert.ToInt32(buffer.GetRemaining(), 16);//int.Parse(buffer.GetRemaining(), NumberStyles.HexNumber | NumberStyles.AllowHexSpecifier);
                 sMsg.Channel.SendMessageAsync($"**{val}**");
 
-            }, ">h", ">hex"));
+            }, ">h", ">hex");
 
-            Commands.Add(new Command("Make the bot say something", (sMsg, buffer) => {
+            AddCMD("Make the bot say something", (sMsg, buffer) => {
                 //bool delete = buffer.HasParameter("-d");
 
                 string msg = sMsg.Content.Remove(0, 4);
                 if (msg.Contains("@everyone"))
                     sMsg.Channel.SendMessageAsync($"no");
                 else
-                    sMsg.Channel.SendMessageAsync($"**{msg}**");
-            }, ">say"));
+                    sMsg.Channel.SendMessageAsync($":speech_balloon: **{msg}**");
+            }, ">say");
 
             Commands.Add(new Command("Call another server lol", async (sMsg, buffer) =>
             {
@@ -119,7 +119,7 @@ namespace CirclesBot
                 {
                     await sMsg.Channel.SendMessageAsync("A call is already active");
                 }
-            }, ">call") { IsEnabled = false});
+            }, ">call"){ IsEnabled = false });
 
             Program.Client.ReactionAdded += async (s, e, x) =>
             {
@@ -135,7 +135,7 @@ namespace CirclesBot
                             await (Program.Client.GetChannel(activeCall.Receiver) as IMessageChannel).SendMessageAsync("You have accepted the call now talk!");
                             await (Program.Client.GetChannel(activeCall.Callee) as IMessageChannel).SendMessageAsync("The other party has accepted!");
                         }
-                        else
+                        else if(x.Emote.Name == new CallDenyEmote().Name)
                         {
                             activeCalls.Remove(activeCall);
                             await (Program.Client.GetChannel(activeCall.Receiver) as IMessageChannel).SendMessageAsync("You have closed the call!");

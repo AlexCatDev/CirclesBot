@@ -58,7 +58,7 @@ namespace CirclesBot
                 if(!score.IsFC)
                     isFCInfo = $" ({score.PP_IF_FC.ToString("F2")}PP for {score.IF_FC_Accuracy.ToString("F2")}% FC)";
 
-                temp += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]\n";
+                temp += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{Utils.ToFriendlyString(score.EnabledMods)}** [{score.StarRating.ToString("F2")}★]\n";
                 temp += $"▸ {Utils.GetEmoteForRankLetter(score.RankingLetter)} ▸ **{score.PP.ToString("F2")}PP**{isFCInfo} ▸ {score.Accuracy.ToString("F2")}%\n";
                 temp += $"▸ {score.Score} ▸ x{score.MaxCombo}/{score.MapMaxCombo} ▸ [{score.Count300}/{score.Count100}/{score.Count50}/{score.CountMiss}]\n";
                 temp += $"▸ **AR:** {score.AR.ToString("F1")} **OD:** {score.OD.ToString("F1")} **HP:** {score.HP.ToString("F1")} **CS:** {score.CS.ToString("F1")} ▸ **BPM:** {score.BPM.ToString("F0")}\n";
@@ -198,7 +198,7 @@ namespace CirclesBot
 
                     EmbedBuilder embedBuilder = CreateScoresEmbed(kek);
 
-                embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapSetID(BeatmapManager.GetBeatmap(kek[0].BeatmapID)).ToString()));
+                embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(kek[0].BeatmapID)).ToString()));
 
                     embedBuilder.WithAuthor($"Recent Plays for {userToCheck}", BanchoAPI.GetProfileImageUrl(recentUserPlays[0].UserID.ToString()));
 
@@ -257,7 +257,7 @@ namespace CirclesBot
 
                     EmbedBuilder embedBuilder = CreateScoresEmbed(kek);
 
-                    embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapSetID(BeatmapManager.GetBeatmap(beatmapID)).ToString()));
+                    embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(beatmapID)).ToString()));
 
                     embedBuilder.WithAuthor($"Plays for {userToCheck}", BanchoAPI.GetProfileImageUrl(userPlays[0].UserID.ToString()));
 
@@ -344,7 +344,7 @@ namespace CirclesBot
                     embedBuilder = CreateScoresEmbed(kek);
                     string recent = showRecent ? "Recent " : "";
                     embedBuilder.WithAuthor($"Top {recent}osu! Plays for {userToCheck}", BanchoAPI.GetProfileImageUrl(kek[0].UserID.ToString()));
-                    embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapSetID(BeatmapManager.GetBeatmap(kek[0].BeatmapID)).ToString()));
+                    embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(kek[0].BeatmapID)).ToString()));
                     sMsg.Channel.SendMessageAsync("", false, embedBuilder.Build());
                 }
                 catch (Exception ex)
@@ -415,7 +415,7 @@ namespace CirclesBot
                     }
                 }
 
-                bool hasMods = Enum.TryParse<Mods>(buffer.GetRemaining(), true, out Mods mods);
+                Mods mods = Utils.StringToMod(buffer.GetRemaining());
 
                 Logger.Log($"calculating if pp fc for {beatmapID}", LogLevel.Info);
 
@@ -427,7 +427,7 @@ namespace CirclesBot
                         return;
                     }
 
-                    if (!hasMods)
+                    if (mods == Mods.None)
                         mods = channelToScores[sMsg.Channel.Id][0].EnabledMods;
 
                     var ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), 0, 0, 0, 0, Mods.None);
@@ -436,7 +436,7 @@ namespace CirclesBot
                     double estimatedCount100 = ((double)ez.MaxCombo / 100.0) * (100.0 - accuracy.Value);
 
                     ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), ez.MaxCombo, (int)Math.Ceiling(estimatedCount100), 0, 0, mods);
-                    sMsg.Channel.SendMessageAsync($"**{ez.Accuracy.ToString("F2")}%** and mods **{mods.ToFriendlyString()}** is: **{ez.PP.ToString("F2")}** on **{ez.SongName} [{ez.DifficultyName}]**");
+                    sMsg.Channel.SendMessageAsync($"**{ez.Accuracy.ToString("F2")}%** and mods **{Utils.ToFriendlyString(mods)}** is: **{ez.PP.ToString("F2")}** on **{ez.SongName} [{ez.DifficultyName}]**");
                 }
                 catch (Exception ex)
                 {
@@ -512,7 +512,7 @@ namespace CirclesBot
 
                     embedBuilder = CreateScoresEmbed(kek);
 
-                    embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapSetID(BeatmapManager.GetBeatmap(beatmapID)).ToString()));
+                    embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(beatmapID)).ToString()));
 
                     embedBuilder.WithAuthor($"Plays for {userToCheck}", BanchoAPI.GetProfileImageUrl(userPlays[0].UserID.ToString()));
 

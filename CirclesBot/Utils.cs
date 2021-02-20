@@ -32,10 +32,30 @@ namespace CirclesBot
             if (mod.HasFlag(Mods.NC))
                 output = output.Replace("DT", "");
 
+            if (mod.HasFlag(Mods.PF))
+                output = output.Replace("SD", "");
+
             return output;
         }
 
-        public static int FindBeatmapSetID(string mapData)
+        public static Mods StringToMod(string modString)
+        {
+            int output = 0;
+
+            var chunks = modString.SplitInParts(2);
+            foreach (var chunk in chunks)
+            {
+                foreach (Mods mod in Enum.GetValues(typeof(Mods)))
+                {
+                    if (mod.ToString().StartsWith(chunk.ToString().ToUpper()))
+                        output += (int)mod;
+                }
+            }
+
+            return (Mods)output;
+        }
+
+        public static int FindBeatmapsetID(string mapData)
         {
             int index = mapData.ToLower().IndexOf("beatmapsetid:");
 
@@ -55,18 +75,6 @@ namespace CirclesBot
                 return 0;
         }
 
-        public static void LazyAdd(this Dictionary<ulong, List<BanchoAPI.BanchoBestScore>> dict, ulong key, List<BanchoAPI.BanchoBestScore> value)
-        {
-            if (dict.ContainsKey(key))
-            {
-                dict[key] = value;
-            }
-            else
-            {
-                dict.Add(key, value);
-            }
-        }
-
         public static int Benchmark(Action a)
         {
             Stopwatch sw = Stopwatch.StartNew();
@@ -76,13 +84,12 @@ namespace CirclesBot
             return (int)time;
         }
 
-        //Credits: raresica1234
-        public static string FormatTime(TimeSpan time)
+        //Credits: https://github.com/raresica1234
+        public static string FormatTime(TimeSpan time, bool ago = true, int statCount = 3)
         {
-            int statCount = 3;
-            int[] stats = new int[] { (int)(time.Days / 365), 0, time.Days, time.Hours, time.Minutes, time.Seconds < 1 ? 1 : time.Seconds };
+            int[] stats = new int[] { (int)(time.Days / 365), 0, time.Days, time.Hours, time.Minutes, time.Seconds.Clamp(1, 60) };
             stats[2] -= stats[0] * 365;
-            stats[1] =  stats[2] / 30;
+            stats[1] = stats[2] / 30;
             stats[2] -= stats[1] * 30;
             string[] names = new string[] { " Years ", " Months ", " Days ", " Hours ", " Minutes ", " Seconds " };
             string output = "";
@@ -95,7 +102,8 @@ namespace CirclesBot
                 }
             }
 
-            output += "Ago";
+            if (ago)
+                output += "Ago";
 
             return output;
         }

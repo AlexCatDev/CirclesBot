@@ -39,8 +39,8 @@ namespace CirclesBot
 
         public static List<Module> LoadedModules = new List<Module>();
 
-        private static Stopwatch uptimeWatch = new Stopwatch();
-        private static Stopwatch downtimeWatch = new Stopwatch();
+        private static Stopwatch onlineWatch = new Stopwatch();
+        private static Stopwatch offlineWatch = new Stopwatch();
 
         public static Config Config { get; private set; }
 
@@ -112,6 +112,14 @@ namespace CirclesBot
                 }
             }, ">disable");
 
+            AddCMD("Disable a command", (sMsg, buffer) => {
+
+                if (sMsg.Author.Id == Config.BotOwnerID)
+                {
+                    throw new Exception("This is a test error from a test command.");
+                }
+            }, ">error");
+
             AddCMD("Shows bot info", (sMsg, buffer) =>
             {
                 var runtimeVer = RuntimeInformation.FrameworkDescription;
@@ -130,15 +138,13 @@ namespace CirclesBot
                 desc += $"GC: **0:** `{GC.CollectionCount(0)}` **1:** `{GC.CollectionCount(1)}` **2:** `{GC.CollectionCount(2)}`\n";
                 desc += $"Oppai Version: **{EZPP.GetVersion()}**\n";
                 desc += $"Ping: **{Client.Latency} MS**\n";
-                desc += $"Uptime: **{Utils.FormatTime(uptimeWatch.Elapsed).Replace("Ago", "")}**\n";
-                desc += $"Downtime: **{Utils.FormatTime(downtimeWatch.Elapsed).Replace("Ago", "")}**\n";
-                desc += $"Guilds: **{Client.Guilds.Count}**\n";
-                desc += $"TotalMembers: **{GetMemberCount()}**\n";
-                desc += $"Modules: **{LoadedModules.Count}**\n";
+                desc += $"Online-Time: **{Utils.FormatTime(onlineWatch.Elapsed, ago: false)}**\n";
+                desc += $"Offline-Time: **{Utils.FormatTime(offlineWatch.Elapsed, ago: false)}**\n";
+                desc += $"Serving: **{Client.Guilds.Count} Guilds And {GetMemberCount()} Members**\n";
+                desc += $"Loaded Modules: **{LoadedModules.Count}**\n";
 
                 embed.WithDescription(desc);
                 embed.WithColor(Color.Blue);
-                //embed.WithFooter($"Started {Utils.FormatTime(uptimeWatch.Elapsed)}");
                 sMsg.Channel.SendMessageAsync("", false, embed.Build());
             }, ">info");
 
@@ -163,6 +169,7 @@ namespace CirclesBot
                         {
                             bool isLast = j == currentCommand.Triggers.Count - 1;
                             triggerText += currentCommand.Triggers[j];
+
                             if (!isLast)
                                 triggerText += ", ";
                         }
@@ -285,8 +292,15 @@ namespace CirclesBot
                 }
                 catch (Exception ex)
                 {
+                    string error = $"An exception has been thrown when trying to handle a command!\n";
+                    error += $"User: **[{s.Author.Username}#{s.Author.Id}]** said: **[{s.Content}]**\n";
+                    error += $"[Exception Message]\n**{ex.Message}**\n";
+                    error += $"[Exception Stacktrace]\n{ex.StackTrace}";
+
+                    Client.GetUser(Config.BotOwnerID).SendMessageAsync(error);
+
                     Logger.Log($"An exception has been thrown when trying to handle a command!", LogLevel.Error);
-                    Logger.Log($"User responsable: [{s.Author.Username}]@[{s.Author.Id}] What they wrote: [{s.Content}]\n", LogLevel.Info);
+                    Logger.Log($"User responsible: [{s.Author.Username}]@[{s.Author.Id}] What they wrote: [{s.Content}]\n", LogLevel.Info);
                     Logger.Log($"[Exception Message]\n{ex.Message}\n", LogLevel.Error);
                     Logger.Log($"[Exception Stacktrace]\n{ex.StackTrace}", LogLevel.Warning);
                 }
@@ -295,8 +309,8 @@ namespace CirclesBot
 
             Client.Ready += () =>
             {
-                uptimeWatch.Start();
-                downtimeWatch.Stop();
+                onlineWatch.Start();
+                offlineWatch.Stop();
                 Logger.Log($"[Bot Connect]\nUser={Client.CurrentUser.Username}", LogLevel.Success);
                 Client.SetGameAsync(">help");
                 return Task.Delay(0);
@@ -304,8 +318,8 @@ namespace CirclesBot
 
             Client.Disconnected += (s) =>
             {
-                uptimeWatch.Stop();
-                downtimeWatch.Start();
+                onlineWatch.Stop();
+                offlineWatch.Start();
                 Logger.Log($"[Bot Disconnected]\n{s.Message}", LogLevel.Error);
                 return Task.Delay(0);
             };
