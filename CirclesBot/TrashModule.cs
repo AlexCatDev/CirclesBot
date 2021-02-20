@@ -38,20 +38,23 @@ namespace CirclesBot
 
         public TrashModule()
         {
-            AddCMD("Convert decimal number to binary", (sMsg, buffer) => {
+            AddCMD("Convert decimal number to binary", (sMsg, buffer) =>
+            {
                 string binary = Convert.ToString(int.Parse(buffer.GetRemaining()), 2);
                 sMsg.Channel.SendMessageAsync($"**{binary}**");
 
             }, ">d", ">decimaltobinary", ">dtb");
 
-            AddCMD("Convert binary number to decimal", (sMsg, buffer) => {
+            AddCMD("Convert binary number to decimal", (sMsg, buffer) =>
+            {
                 int val = Convert.ToInt32(buffer.GetRemaining(), 2);
                 sMsg.Channel.SendMessageAsync($"**{val}**");
 
             }, ">b", ">binarytodecimal", ">btd");
 
-            AddCMD("Convert binary to chars", (sMsg, buffer) => {
-                var list = new System.Collections.Generic.List<Byte>();
+            AddCMD("Convert binary to chars", (sMsg, buffer) =>
+            {
+                var list = new List<byte>();
                 string binary = buffer.GetRemaining();
 
                 binary = binary.Replace("_", "");
@@ -76,20 +79,21 @@ namespace CirclesBot
 
             }, ">char", ">chars", ">string");
 
-            AddCMD("Convert hex to decimal", (sMsg, buffer) => {
-                int val = Convert.ToInt32(buffer.GetRemaining(), 16);//int.Parse(buffer.GetRemaining(), NumberStyles.HexNumber | NumberStyles.AllowHexSpecifier);
+            AddCMD("Convert hex to decimal", (sMsg, buffer) =>
+            {
+                int val = Convert.ToInt32(buffer.GetRemaining(), 16);
                 sMsg.Channel.SendMessageAsync($"**{val}**");
 
             }, ">h", ">hex");
 
-            AddCMD("Make the bot say something", (sMsg, buffer) => {
-                //bool delete = buffer.HasParameter("-d");
-
+            AddCMD("Make the bot say something", (sMsg, buffer) =>
+            {
                 string msg = sMsg.Content.Remove(0, 4);
                 if (msg.Contains("@everyone"))
                     sMsg.Channel.SendMessageAsync($"no");
                 else
                     sMsg.Channel.SendMessageAsync($":speech_balloon: **{msg}**");
+
             }, ">say");
 
             Commands.Add(new Command("Call another server lol", async (sMsg, buffer) =>
@@ -121,7 +125,8 @@ namespace CirclesBot
                 {
                     await sMsg.Channel.SendMessageAsync("A call is already active");
                 }
-            }, ">call"){ IsEnabled = false });
+            }, ">call")
+            { IsEnabled = false });
 
             Program.Client.ReactionAdded += async (s, e, x) =>
             {
@@ -137,14 +142,13 @@ namespace CirclesBot
                             await (Program.Client.GetChannel(activeCall.Receiver) as IMessageChannel).SendMessageAsync("You have accepted the call now talk!");
                             await (Program.Client.GetChannel(activeCall.Callee) as IMessageChannel).SendMessageAsync("The other party has accepted!");
                         }
-                        else if(x.Emote.Name == new CallDenyEmote().Name)
+                        else if (x.Emote.Name == new CallDenyEmote().Name)
                         {
                             activeCalls.Remove(activeCall);
                             await (Program.Client.GetChannel(activeCall.Receiver) as IMessageChannel).SendMessageAsync("You have closed the call!");
                             await (Program.Client.GetChannel(activeCall.Callee) as IMessageChannel).SendMessageAsync("The other party closed the call!");
                         }
                     }
-                    //return Task.Delay(0);
                 }
             };
 
@@ -158,11 +162,11 @@ namespace CirclesBot
 
                 if (toSend != null)
                 {
-                    if(toSend.CallAccepted)
-                    (Program.Client.GetChannel(toSend.Callee) as IMessageChannel).SendMessageAsync($":speech_balloon: **{s.Content}**");
+                    if (toSend.CallAccepted)
+                        (Program.Client.GetChannel(toSend.Callee) as IMessageChannel).SendMessageAsync($":speech_balloon: **{s.Content}**");
                 }
 
-                if(toReceive != null)
+                if (toReceive != null)
                 {
                     if (toReceive.CallAccepted)
                         (Program.Client.GetChannel(toReceive.Receiver) as IMessageChannel).SendMessageAsync($":speech_balloon: **{s.Content}**");
