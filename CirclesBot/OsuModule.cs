@@ -10,16 +10,13 @@ namespace CirclesBot
 {
     /// <summary>
     /// GIANT TODO LIST
-    /// 
-    /// 1. Make it so every score posting command adds a list rather than a single score, so it's easier for comparisons
-    /// 2. Instead of downloading every beatmap and doing pp calculations with EZPP, use /get_beatmap endpoint for getting difficulty values.
-    /// 3. Use osu!lazer pp calculator for ^
-    /// 4. Remove EZPP after ^
-    /// 5. Cleanup code
-    /// 6. Add Ripple/Akatsuki/Gatari support lowpriority
-    /// 7. Add Mania/CTB/Taiko support midpriority
+    /// 1. Instead of downloading every beatmap and doing pp calculations with EZPP, use /get_beatmap endpoint for getting difficulty values.
+    /// 2. Use osu!lazer pp calculator for ^
+    /// 3. Remove EZPP after ^
+    /// 4. Cleanup code
+    /// 5. Add Ripple/Akatsuki/Gatari support lowpriority
+    /// 6. Add Mania/CTB/Taiko support midpriority
     /// </summary>
-
     public class OsuModule : Module
     {
         public override string Name => "osu! Module";
@@ -212,7 +209,6 @@ namespace CirclesBot
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
             }, ">rs", ">recent", ".");
-
 
             AddCMD("Shows user plays on a specific map", (sMsg, buffer) =>
             {
@@ -557,7 +553,6 @@ namespace CirclesBot
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
             }, ">osu");
-
 
             AddCMD("Sets your osu user", (sMsg, buffer) =>
             {

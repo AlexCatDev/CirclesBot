@@ -211,13 +211,9 @@ namespace CirclesBot
                 eb.WithDescription(desc);
                 commandPages.AddContent(eb);
 
-
-                //eb.WithDescription(desc);
-                //eb.WithColor(Color.Green);
                 PagesHandler.SendPages(sMsg.Channel, commandPages);
             }, ">help");
         }
-
 
         static void Main(string[] args)
         {
