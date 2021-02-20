@@ -134,7 +134,7 @@ namespace CirclesBot
 
             double objectsEncountered = Count300 + Count100 + Count50 + CountMiss;
 
-            Accuracy = (double)(Count300 * 300.0 + Count100 * 100.0 + Count50 * 50.0) / (double)(objectsEncountered * 300.0);
+            Accuracy = (double)((Count300 * 300.0) + (Count100 * 100.0) + (Count50 * 50.0)) / (double)(objectsEncountered * 300.0);
             Accuracy *= 100.0;
 
             //100 to 300 ratio

@@ -21,16 +21,11 @@ namespace CirclesBot
 
     public class Pages
     {
-        List<EmbedBuilder> pages = new List<EmbedBuilder>();
+        private List<EmbedBuilder> pages = new List<EmbedBuilder>();
 
         public int PageCount => pages.Count;
 
         private int pageIndex = 0;
-
-        public Pages()
-        {
-
-        }
 
         public void AddContent(EmbedBuilder eb)
         {

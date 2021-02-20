@@ -90,7 +90,6 @@ namespace CirclesBot
 
         public static EZPPResult Calculate(string mapData, int maxCombo, int n100, int n50, int nMisses, Mods mods)
         {
-
             lock (ezppLock)
             {
                 //Create ezpp instance
