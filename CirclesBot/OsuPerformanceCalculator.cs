@@ -6,11 +6,13 @@ using System.Threading.Tasks;
 
 namespace CirclesBot
 {
+    /*
     /// <summary>
     /// i dont wanna do this
     /// </summary>
     public class OsuBeatmap
     {
+        
         public double RawAim { get; set; }
         public double RawSpeed { get; set; }
 
@@ -195,4 +197,5 @@ namespace CirclesBot
         private int totalHits => countGreat + countOk + countMeh + countMiss;
         private int totalSuccessfulHits => countGreat + countOk + countMeh;
     }
+    */
 }
