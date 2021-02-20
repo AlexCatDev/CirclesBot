@@ -35,8 +35,6 @@ namespace CirclesBot
                 ":(", ":)", ":D", ":-)", ":-(", "D:", ";(", ";)", ":o", ":O", ">:O", ":c", "c:", "<3", "</3"
         };
 
-        public const ulong BotOwnerID = 591339926017146910;
-
         public static DiscordSocketClient Client = new DiscordSocketClient(new DiscordSocketConfig() { AlwaysDownloadUsers = true, ConnectionTimeout = -1 });
 
         public static List<Module> LoadedModules = new List<Module>();
@@ -44,7 +42,7 @@ namespace CirclesBot
         private static Stopwatch uptimeWatch = new Stopwatch();
         private static Stopwatch downtimeWatch = new Stopwatch();
 
-        public static Credentials Credentials;
+        public static Config Config { get; private set; }
 
         public static int GetMemberCount()
         {
@@ -72,7 +70,7 @@ namespace CirclesBot
             AddCMD("Enable a command", (sMsg, buffer) => {
                 string commandToEnable = buffer.GetRemaining();
 
-                if (sMsg.Author.Id == BotOwnerID)
+                if (sMsg.Author.Id == Config.BotOwnerID)
                 {
                     foreach (var module in LoadedModules)
                     {
@@ -96,7 +94,7 @@ namespace CirclesBot
                 if (commandToDisable == ">disable" || commandToDisable == ">enable")
                     return;
 
-                if (sMsg.Author.Id == BotOwnerID)
+                if (sMsg.Author.Id == Config.BotOwnerID)
                 {
                     foreach (var module in LoadedModules)
                     {
@@ -202,20 +200,27 @@ namespace CirclesBot
 
         static void Main(string[] args)
         {
-            if (!File.Exists("./Credentials.txt"))
+            if (!File.Exists(Config.Filename))
             {
-                Logger.Log("No credentials, please put your credentials into Credentials.txt. Press enter when you have done that.");
-                File.WriteAllText("./Credentials.txt", JsonConvert.SerializeObject(new Credentials()));
+                Logger.Log($"No config, please put your credentials into {Config.Filename}. Press enter when you have done that.");
+                File.WriteAllText(Config.Filename, JsonConvert.SerializeObject(new Config()));
                 Console.ReadLine();
             }
 
-            Credentials = JsonConvert.DeserializeObject<Credentials>(File.ReadAllText("./Credentials.txt"));
-
-            if(String.IsNullOrEmpty(Credentials.DISCORD_API_KEY))
+            while (true)
             {
-                Logger.Log("You need to enter a discord api key into the Credentials.txt file.", LogLevel.Error);
-                Console.ReadLine();
-                Environment.Exit(0);
+                try
+                {
+                    Config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(Config.Filename));
+                    Config.Verify();
+                    break;
+                }
+                catch(Exception ex)
+                {
+                    Logger.Log($"Error when parsing config: {ex.Message}", LogLevel.Error);
+                    Logger.Log("Press enter to try again", LogLevel.Info);
+                    Console.ReadLine();
+                }
             }
 
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
@@ -238,10 +243,10 @@ namespace CirclesBot
                     {
                         if (type.IsAssignableTo(typeof(Module)))
                         {
-                            Logger.Log($"Found module: {type.Name}");
+                            Logger.Log($"Loading: {type.Name}");
                             Module loadedModule = (Module)Activator.CreateInstance(type);
                             LoadedModules.Add(loadedModule);
-                            Logger.Log($"Loaded module: {type.Name}", LogLevel.Success);
+                            Logger.Log($"Done", LogLevel.Success);
                         }
                     }
                 }
@@ -257,7 +262,7 @@ namespace CirclesBot
                     s.Channel.SendMessageAsync(RandomQuirkyResponses[Utils.GetRandomNumber(0, RandomQuirkyResponses.Length - 1)]);
                 }
 
-                if (s.Content.ToLower() == ">die" && s.Author.Id == BotOwnerID)
+                if (s.Content.ToLower() == ">die" && s.Author.Id == Config.BotOwnerID)
                 {
                     s.Channel.SendMessageAsync("ok i die").GetAwaiter().GetResult();
                     signalKill = true;
@@ -334,7 +339,7 @@ namespace CirclesBot
                 return Task.Delay(0);
             };
 
-            Client.LoginAsync(TokenType.Bot, Credentials.OPTIONAL_DISCORD_API_KEY);
+            Client.LoginAsync(TokenType.Bot, Config.OPTIONAL_DISCORD_API_KEY);
             Logger.Log("Logging in...");
             Client.StartAsync();
 

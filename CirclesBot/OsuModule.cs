@@ -138,7 +138,7 @@ namespace CirclesBot
 
         public OsuModule()
         {
-            banchoAPI = new BanchoAPI(Program.Credentials.OSU_API_KEY);
+            banchoAPI = new BanchoAPI(Program.Config.OSU_API_KEY);
 
             AddCMD("You are lazy", (sMsg, buffer) => {
                 Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile => {
@@ -200,7 +200,7 @@ namespace CirclesBot
 
                 embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapSetID(BeatmapManager.GetBeatmap(kek[0].BeatmapID)).ToString()));
 
-                    embedBuilder.WithAuthor($"Recent Plays for {userToCheck}[https://osu.ppy.sh/users/{userToCheck}]", BanchoAPI.GetProfileImageUrl(recentUserPlays[0].UserID.ToString()));
+                    embedBuilder.WithAuthor($"Recent Plays for {userToCheck}", BanchoAPI.GetProfileImageUrl(recentUserPlays[0].UserID.ToString()));
 
                     sMsg.Channel.SendMessageAsync("", false, embedBuilder.Build());
                 }
@@ -315,7 +315,7 @@ namespace CirclesBot
                         }
                         else
                         {
-                            sMsg.Channel.SendMessageAsync($">osutop -g 69");
+                            sMsg.Channel.SendMessageAsync($"Ex: >osutop -g 69");
                             return;
                         }
                     }
@@ -433,9 +433,9 @@ namespace CirclesBot
                     var ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), 0, 0, 0, 0, Mods.None);
 
                                                                     //1% hitobjects * (100 - acc%) = 1%*acc
-                    double estimatedCount100 = ((double)ez.TotalHitObjects / 100.0) * (100.0 - accuracy.Value);
+                    double estimatedCount100 = ((double)ez.MaxCombo / 100.0) * (100.0 - accuracy.Value);
 
-                    ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), ez.MaxCombo, (int)Math.Floor(estimatedCount100), 0, 0, mods);
+                    ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), ez.MaxCombo, (int)Math.Ceiling(estimatedCount100), 0, 0, mods);
                     sMsg.Channel.SendMessageAsync($"**{ez.Accuracy.ToString("F2")}%** and mods **{mods.ToFriendlyString()}** is: **{ez.PP.ToString("F2")}** on **{ez.SongName} [{ez.DifficultyName}]**");
                 }
                 catch (Exception ex)
@@ -481,7 +481,9 @@ namespace CirclesBot
                     else
                     {
                         indexToCheck = Math.Max(indexToCheck.Value - 1, 0);
-                        beatmapID = scores[Math.Min(scores.Count, indexToCheck.Value)].BeatmapID;
+                        var score = scores[Math.Min(scores.Count - 1, indexToCheck.Value)];
+
+                        beatmapID = score.BeatmapID;
                     }
                 }
 

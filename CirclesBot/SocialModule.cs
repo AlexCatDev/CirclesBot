@@ -163,34 +163,60 @@ namespace CirclesBot
                     }
                 });
 
-                if (userToCheck.Id == Program.BotOwnerID)
-                    builder.WithFooter($"Bot Creator");
+                if (userToCheck.Id == Program.Config.BotOwnerID)
+                    builder.WithFooter($"Bot Owner");
 
                 sMsg.Channel.SendMessageAsync("", false, builder.Build());
             }, ">profile", ">pf");
 
-            AddCMD("Gives you the desired item", (sMsg, buffer) => {
-                string item = buffer.GetRemaining();
-                if (sMsg.Author.Id == Program.BotOwnerID)
+            AddCMD("itemtest", (sMsg, buffer) => {
+                if (sMsg.Author.Id == Program.Config.BotOwnerID)
                 {
                     GetProfile(sMsg.Author.Id, (profile) =>
                     {
                         profile.Inventory.Add(new Item()
                         {
-                            Name = item,
-                            Damage = 69,
-                            Description = "A item",
-                            Icon = ":flushed:"
+                            Name = "Test Item",
+                            Damage = 1337,
+                            Accuracy = 69,
+                            HealAmount = 727,
+                            Description = "A Test Item",
+                            Icon = ":sunglasses:"
                         });
                     });
 
-                    sMsg.Channel.SendMessageAsync($"Gave u item: {item}");
+                    sMsg.Channel.SendMessageAsync($"Gave u testitem");
                 }
                 else
                 {
                     sMsg.Channel.SendMessageAsync("no");
                 }
-            }, ">giveitem");
+            }, ">itemtest");
+
+            AddCMD("Wipes a profile", (sMsg, buffer) => {
+                Discord.WebSocket.SocketUser userToCheck;
+
+                if (sMsg.MentionedUsers.Count > 0)
+                    userToCheck = sMsg.MentionedUsers.First();
+                else
+                {
+                    sMsg.Channel.SendMessageAsync("Mention someone to wipe their profile");
+                    return;
+                }
+
+                if (sMsg.Author.Id == Program.Config.BotOwnerID)
+                {
+                    lock (profileLock)
+                    {
+                        File.WriteAllText($"{DiscordProfileDirectory}/{userToCheck.Id}", JsonConvert.SerializeObject(new DiscordProfile()));
+                    }
+                    sMsg.Channel.SendMessageAsync($"Wiped **{userToCheck.Username}** :ok_hand:");
+                }
+                else
+                {
+                    sMsg.Channel.SendMessageAsync("no");
+                }
+            }, ">wipe");
 
             Program.Client.MessageReceived += (s) =>
             {

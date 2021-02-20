@@ -48,7 +48,7 @@ namespace CirclesBot
                         Logger.Log($"\tIt took {time} milliseconds", LogLevel.Success);
 
                         bool isRanked = true;
-
+                         /*
                         Logger.Log($"Checking status");
                         time =  Utils.Benchmark(() =>
                         {
@@ -56,8 +56,9 @@ namespace CirclesBot
                             isRanked = scores.Contains("\"ranked\":1");
                         });
                         Logger.Log($"\tIt took {time} milliseconds IsRanked: {isRanked}", LogLevel.Success);
+                         */
 
-                        if (true)
+                        if (isRanked)
                         {
                             string filename = $"{id}";
 
