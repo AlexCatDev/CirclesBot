@@ -46,7 +46,6 @@ namespace CirclesBot
         public bool IsLazy;
         public int PreferredColor;
 
-
         /// <summary>
         /// Runescape formula :P
         /// </summary>
@@ -69,7 +68,7 @@ namespace CirclesBot
 
             for (int i = 1; i < level; i++)
             {
-                total += Math.Floor(i + 300 * Math.Pow(2, i / 7.0));
+                total += Math.Floor(i + (300 * Math.Pow(2, i / 7.0)));
             }
 
             return (ulong)Math.Floor(total / 4.0);
@@ -139,7 +138,6 @@ namespace CirclesBot
                     userToCheck = sMsg.MentionedUsers.First();
                 else
                     userToCheck = sMsg.Author;
-
 
                 EmbedBuilder builder = new EmbedBuilder();
                 builder.WithAuthor($"Profile for {userToCheck.Username}", userToCheck.GetAvatarUrl());
