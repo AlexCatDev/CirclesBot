@@ -58,7 +58,7 @@ namespace CirclesBot
                 if(!score.IsFC)
                     isFCInfo = $" ({score.PP_IF_FC.ToString("F2")}PP for {score.IF_FC_Accuracy.ToString("F2")}% FC)";
 
-                temp += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{Utils.ToFriendlyString(score.EnabledMods)}** [{score.StarRating.ToString("F2")}★]\n";
+                temp += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]\n";
                 temp += $"▸ {Utils.GetEmoteForRankLetter(score.RankingLetter)} ▸ **{score.PP.ToString("F2")}PP**{isFCInfo} ▸ {score.Accuracy.ToString("F2")}%\n";
                 temp += $"▸ {score.Score} ▸ x{score.MaxCombo}/{score.MapMaxCombo} ▸ [{score.Count300}/{score.Count100}/{score.Count50}/{score.CountMiss}]\n";
                 temp += $"▸ **AR:** {score.AR.ToString("F1")} **OD:** {score.OD.ToString("F1")} **HP:** {score.HP.ToString("F1")} **CS:** {score.CS.ToString("F1")} ▸ **BPM:** {score.BPM.ToString("F0")}\n";
@@ -423,7 +423,7 @@ namespace CirclesBot
                 {
                     if(accuracy == null)
                     {
-                        sMsg.Channel.SendMessageAsync("Example: >pp 98.5% HD,DT");
+                        sMsg.Channel.SendMessageAsync("Example: >pp 98.5% HDDT");
                         return;
                     }
 
@@ -432,11 +432,11 @@ namespace CirclesBot
 
                     var ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), 0, 0, 0, 0, Mods.None);
 
-                                                                    //1% hitobjects * (100 - acc%) = 1%*acc
-                    double estimatedCount100 = ((double)ez.MaxCombo / 100.0) * (100.0 - accuracy.Value);
+                                                                    //idk how this works, but it just does
+                    double estimatedCount100 = ((double)ez.TotalHitObjects / 66.7) * (100.0 - accuracy.Value);
 
                     ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), ez.MaxCombo, (int)Math.Ceiling(estimatedCount100), 0, 0, mods);
-                    sMsg.Channel.SendMessageAsync($"**{ez.Accuracy.ToString("F2")}%** and mods **{Utils.ToFriendlyString(mods)}** is: **{ez.PP.ToString("F2")}** on **{ez.SongName} [{ez.DifficultyName}]**");
+                    sMsg.Channel.SendMessageAsync($"**{ez.Accuracy.ToString("F2")}%** and mods **{mods.ToFriendlyString()}** is: **{ez.PP.ToString("F2")}** on **{ez.SongName} [{ez.DifficultyName}]**");
                 }
                 catch (Exception ex)
                 {

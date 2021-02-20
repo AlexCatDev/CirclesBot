@@ -113,7 +113,8 @@ namespace CirclesBot
                 Directory.CreateDirectory(DiscordProfileDirectory);
             }
 
-            AddCMD("View your inventory", (sMsg, buffer) => {
+            AddCMD("View your inventory", (sMsg, buffer) =>
+            {
                 string output = "";
                 GetProfile(sMsg.Author.Id, profile =>
                 {
@@ -122,13 +123,14 @@ namespace CirclesBot
                         output += $"{item.Icon} : {item.Name} [{item.Description}] -> {item.Damage}\n";
                     }
                 });
-                if(output== "")
+                if (output == "")
                     sMsg.Channel.SendMessageAsync("You have no items sir");
                 else
-                sMsg.Channel.SendMessageAsync(output);
+                    sMsg.Channel.SendMessageAsync(output);
             }, ">inventory", ">inv");
 
-            AddCMD("View your profile", (sMsg, buffer) => {
+            AddCMD("View your profile", (sMsg, buffer) =>
+            {
                 Discord.WebSocket.SocketUser userToCheck;
 
                 if (sMsg.MentionedUsers.Count > 0)
@@ -169,7 +171,8 @@ namespace CirclesBot
                 sMsg.Channel.SendMessageAsync("", false, builder.Build());
             }, ">profile", ">pf");
 
-            AddCMD("itemtest", (sMsg, buffer) => {
+            AddCMD("itemtest", (sMsg, buffer) =>
+            {
                 if (sMsg.Author.Id == Program.Config.BotOwnerID)
                 {
                     GetProfile(sMsg.Author.Id, (profile) =>
@@ -193,7 +196,8 @@ namespace CirclesBot
                 }
             }, ">itemtest");
 
-            AddCMD("Wipes a profile", (sMsg, buffer) => {
+            AddCMD("Wipes a profile", (sMsg, buffer) =>
+            {
                 Discord.WebSocket.SocketUser userToCheck;
 
                 if (sMsg.MentionedUsers.Count > 0)
@@ -218,6 +222,8 @@ namespace CirclesBot
                 }
             }, ">wipe");
 
+            ulong lastAuthorID = 0;
+
             Program.Client.MessageReceived += (s) =>
             {
                 if (!s.Author.IsBot)
@@ -225,8 +231,12 @@ namespace CirclesBot
                     GetProfile(s.Author.Id, (profile) =>
                     {
                         profile.MessagesSent++;
-                        //1 to 68 xp per message
-                        profile.XP += (ulong)Utils.GetRandomNumber(1, 68);
+                        //50 to 200 xp per "unique" message
+                        if (lastAuthorID != s.Author.Id)
+                        {
+                            lastAuthorID = s.Author.Id;
+                            profile.XP += (ulong)Utils.GetRandomNumber(50, 200);
+                        }
                     });
                 }
 

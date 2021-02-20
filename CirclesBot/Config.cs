@@ -10,6 +10,7 @@ namespace CirclesBot
         public string DISCORD_API_KEY = "";
         public string OPTIONAL_DISCORD_API_KEY = "";
         public ulong BotOwnerID = 0;
+        public bool DMOwnerOnError = false;
 
         public void Verify()
         {

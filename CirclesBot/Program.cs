@@ -112,14 +112,6 @@ namespace CirclesBot
                 }
             }, ">disable");
 
-            AddCMD("Disable a command", (sMsg, buffer) => {
-
-                if (sMsg.Author.Id == Config.BotOwnerID)
-                {
-                    throw new Exception("This is a test error from a test command.");
-                }
-            }, ">error");
-
             AddCMD("Shows bot info", (sMsg, buffer) =>
             {
                 var runtimeVer = RuntimeInformation.FrameworkDescription;
@@ -210,7 +202,7 @@ namespace CirclesBot
             if (!File.Exists(Config.Filename))
             {
                 Logger.Log($"No config, please put your credentials into {Config.Filename}. Press enter when you have done that.");
-                File.WriteAllText(Config.Filename, JsonConvert.SerializeObject(new Config()));
+                File.WriteAllText(Config.Filename, JsonConvert.SerializeObject(new Config(), Formatting.Indented));
                 Console.ReadLine();
             }
 
@@ -292,12 +284,15 @@ namespace CirclesBot
                 }
                 catch (Exception ex)
                 {
-                    string error = $"An exception has been thrown when trying to handle a command!\n";
-                    error += $"User: **[{s.Author.Username}#{s.Author.Id}]** said: **[{s.Content}]**\n";
-                    error += $"[Exception Message]\n**{ex.Message}**\n";
-                    error += $"[Exception Stacktrace]\n{ex.StackTrace}";
+                    if (Config.DMOwnerOnError)
+                    {
+                        string error = $"An exception has been thrown when trying to handle a command!\n";
+                        error += $"User: **[{s.Author.Username}#{s.Author.Id}]** said: **[{s.Content}]**\n";
+                        error += $"[Exception Message]\n**{ex.Message}**\n";
+                        error += $"[Exception Stacktrace]\n{ex.StackTrace}";
 
-                    Client.GetUser(Config.BotOwnerID).SendMessageAsync(error);
+                        Client.GetUser(Config.BotOwnerID).SendMessageAsync(error);
+                    }
 
                     Logger.Log($"An exception has been thrown when trying to handle a command!", LogLevel.Error);
                     Logger.Log($"User responsible: [{s.Author.Username}]@[{s.Author.Id}] What they wrote: [{s.Content}]\n", LogLevel.Info);
@@ -353,7 +348,7 @@ namespace CirclesBot
                 return Task.Delay(0);
             };
 
-            Client.LoginAsync(TokenType.Bot, Config.OPTIONAL_DISCORD_API_KEY);
+            Client.LoginAsync(TokenType.Bot, Config.DISCORD_API_KEY);
             Logger.Log("Logging in...");
             Client.StartAsync();
 
