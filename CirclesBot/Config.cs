@@ -4,6 +4,8 @@ namespace CirclesBot
 {
     public class Config
     {
+        public static string GithubURL = "https://github.com/AlexCatDev/CirclesBot";
+
         public static string Filename = "./config.json";
 
         public string OSU_API_KEY = "";

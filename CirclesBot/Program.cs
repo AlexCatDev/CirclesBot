@@ -22,7 +22,20 @@ namespace CirclesBot
     /// </summary>
     class Program : Module
     {
-        public override string Name => "Main Module";
+        public const string XD =
+            ":joy::joy::joy::joy::joy::joy::joy::joy::joy::joy::joy::joy::joy::joy::joy:\n"+
+            ":joy::cool::cool::cool::cool::cool::cool::cool::cool::cool::cool::cool::cool::cool::joy:\n" +
+            ":joy::cool::100::cool::cool::cool::100::cool::100::100::100::cool::cool::cool::joy:\n" +
+            ":joy::cool::100::100::cool::100::100::cool::100::cool::100::100::cool::cool::joy:\n" +
+            ":joy::cool::cool::100::cool::100::cool::cool::100::cool::cool::100::100::cool::joy:\n" +
+            ":joy::cool::cool::100::100::100::cool::cool::100::cool::cool::cool::100::cool::joy:\n" +
+            ":joy::cool::cool::cool::100::cool::cool::cool::100::cool::cool::cool::100::cool::joy:\n" +
+            ":joy::cool::cool::100::100::100::cool::cool::100::cool::cool::cool::100::cool::joy:\n" +
+            ":joy::cool::cool::100::cool::100::cool::cool::100::cool::cool::100::100::cool::joy:\n" +
+            ":joy::cool::100::100::cool::100::100::cool::100::cool::100::100::cool::cool::joy:\n" +
+            ":joy::cool::100::cool::cool::cool::100::cool::100::100::100::cool::cool::cool::joy:\n" +
+            ":joy::cool::cool::cool::cool::cool::cool::cool::cool::cool::cool::cool::cool::cool::joy:\n" +
+            ":joy::joy::joy::joy::joy::joy::joy::joy::joy::joy::joy::joy::joy::joy::joy:\n";
 
         public static readonly string[] RandomQuirkyResponses = new string[] {
                 "I agree!", "Thats stupid", "Please tell us more",
@@ -32,7 +45,7 @@ namespace CirclesBot
                 "727", "dab", "kappa", "lol", "lmao", "owo", "uwu", "yep", "cool", "nice play", "nice cock",
                 "i rate 1/10", "i rate 2/10", "i rate 3/10","i rate 4/10","i rate 5/10","i rate 6/10","i rate 7/10", "i rate 8/10", "i rate 9/10", "i rate 10/10",
                 "you lost", "cock", "penis", "bye", "hello", "calm down", "it burns", "for real tho", "bro", "i guess",
-                ":(", ":)", ":D", ":-)", ":-(", "D:", ";(", ";)", ":o", ":O", ">:O", ":c", "c:", "<3", "</3"
+                ":(", ":)", ":D", ":-)", ":-(", "D:", ";(", ";)", ":o", ":O", ">:O", ":c", "c:", "<3", "</3", ":^)"
         };
 
         public static DiscordSocketClient Client = new DiscordSocketClient(new DiscordSocketConfig() { AlwaysDownloadUsers = true, ConnectionTimeout = -1 });
@@ -43,6 +56,8 @@ namespace CirclesBot
         private static Stopwatch offlineWatch = new Stopwatch();
 
         public static Config Config { get; private set; }
+
+        public static ulong TotalCommandsHandled;
 
         public static int GetMemberCount()
         {
@@ -64,6 +79,8 @@ namespace CirclesBot
 
             return null;
         }
+
+        public override string Name => "Main Module";
 
         public Program()
         {
@@ -118,21 +135,23 @@ namespace CirclesBot
 
                 EmbedBuilder embed = new EmbedBuilder();
 
-                embed.WithTitle("Bot Runtime Info");
+                embed.WithTitle("Bot Info");
                 string desc = "";
 
-                desc += "[Github Link](https://github.com/AlexCatDev/CirclesBot)\n";
+                desc += $"[Github Link]({Config.GithubURL})\n";
 
                 desc += $"Runtime: **{runtimeVer}**\n";
                 desc += $"OS: **{RuntimeInformation.OSDescription} {RuntimeInformation.ProcessArchitecture}**\n";
                 desc += $"CPU Cores: **{Environment.ProcessorCount}**\n";
                 desc += $"Ram Usage: **{(Process.GetCurrentProcess().PrivateMemorySize64 / 1048576.0).ToString("F")} MB**\n";
+                desc += $"CPU Time: **{Utils.FormatTime(Process.GetCurrentProcess().TotalProcessorTime, ago: false)}**\n";
                 desc += $"GC: **0:** `{GC.CollectionCount(0)}` **1:** `{GC.CollectionCount(1)}` **2:** `{GC.CollectionCount(2)}`\n";
                 desc += $"Oppai Version: **{EZPP.GetVersion()}**\n";
                 desc += $"Ping: **{Client.Latency} MS**\n";
                 desc += $"Online-Time: **{Utils.FormatTime(onlineWatch.Elapsed, ago: false)}**\n";
                 desc += $"Offline-Time: **{Utils.FormatTime(offlineWatch.Elapsed, ago: false)}**\n";
                 desc += $"Serving: **{Client.Guilds.Count} Guilds And {GetMemberCount()} Members**\n";
+                desc += $"Commands Handled: **{TotalCommandsHandled}**\n";
                 desc += $"Loaded Modules: **{LoadedModules.Count}**\n";
 
                 embed.WithDescription(desc);
@@ -253,12 +272,26 @@ namespace CirclesBot
 
             Logger.Log($"Modules took {time} milliseconds to load");
 
+            bool isRunning = true;
+
             Client.MessageReceived += (s) =>
             {
-                //1% chance
-                if (Utils.GetRandomChance(1))
+                if (s.Author.IsBot)
+                    return Task.Delay(0);
+
+                //This is here so i can more easily run instances of the same bot
+                if (s.Content.ToLower() == ">stop" && s.Author.Id == Config.BotOwnerID)
                 {
-                    s.Channel.SendMessageAsync(RandomQuirkyResponses[Utils.GetRandomNumber(0, RandomQuirkyResponses.Length - 1)]);
+                    isRunning = false;
+
+                    s.Channel.SendMessageAsync("I will no longer handle commands");
+                }
+
+                if (s.Content.ToLower() == ">start" && s.Author.Id == Config.BotOwnerID)
+                {
+                    isRunning = true;
+
+                    s.Channel.SendMessageAsync("I will handle commands again");
                 }
 
                 if (s.Content.ToLower() == ">die" && s.Author.Id == Config.BotOwnerID)
@@ -268,8 +301,13 @@ namespace CirclesBot
                     return Task.Delay(0);
                 }
 
-                if (s.Author.IsBot)
+                if (!isRunning)
                     return Task.Delay(0);
+                //1% chance
+                if (Utils.GetRandomChance(1))
+                {
+                    s.Channel.SendMessageAsync(RandomQuirkyResponses[Utils.GetRandomNumber(0, RandomQuirkyResponses.Length - 1)]);
+                }
 
                 Logger.Log(s.Channel.Name + "->" + s.Author.Username + ": " + s.Content);
                 try
@@ -348,7 +386,7 @@ namespace CirclesBot
                 return Task.Delay(0);
             };
 
-            Client.LoginAsync(TokenType.Bot, Config.DISCORD_API_KEY);
+            Client.LoginAsync(TokenType.Bot, Config.OPTIONAL_DISCORD_API_KEY);
             Logger.Log("Logging in...");
             Client.StartAsync();
 

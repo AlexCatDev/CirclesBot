@@ -222,6 +222,40 @@ namespace CirclesBot
                 }
             }, ">wipe");
 
+            AddCMD("Set your xp", (sMsg, buffer) =>
+            {
+                ulong? xp = (ulong?)buffer.GetInt();
+
+                Discord.WebSocket.SocketUser userToCheck;
+
+                if (sMsg.MentionedUsers.Count > 0)
+                    userToCheck = sMsg.MentionedUsers.First();
+                else
+                {
+                    sMsg.Channel.SendMessageAsync("Mention someone to set their xp");
+                    return;
+                }
+
+                if (sMsg.Author.Id == Program.Config.BotOwnerID)
+                {
+                    if(xp.HasValue == false)
+                    {
+                        sMsg.Channel.SendMessageAsync("you need to define how much xp");
+                        return;
+                    }
+
+                    GetProfile(userToCheck.Id, profile => {
+                        profile.XP = xp.Value;
+                    });
+
+                    sMsg.Channel.SendMessageAsync($"**{userToCheck.Username}'s** xp has been set to **{xp.Value}**");
+                }
+                else
+                {
+                    sMsg.Channel.SendMessageAsync("no");
+                }
+            }, ">xp");
+
             ulong lastAuthorID = 0;
 
             Program.Client.MessageReceived += (s) =>
@@ -235,7 +269,12 @@ namespace CirclesBot
                         if (lastAuthorID != s.Author.Id)
                         {
                             lastAuthorID = s.Author.Id;
+                            int lvl = profile.Level;
                             profile.XP += (ulong)Utils.GetRandomNumber(50, 200);
+                            if(lvl == 98 && profile.Level == 99)
+                            {
+                                s.Channel.SendMessageAsync($"**Congratz on level 99!!! Now get a fucking life**\n{Program.XD}");
+                            }
                         }
                     });
                 }
