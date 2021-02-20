@@ -8,9 +8,9 @@ namespace CirclesBot
     public static class EZPP
     {
 #if LINUX
-        public const string LibraryName = "./liboppai.so";
+        public const string LibraryName = "./Oppai/liboppai.so";
 #else
-        public const string LibraryName = "oppai.dll";
+        public const string LibraryName = "./Oppai/oppai.dll";
 #endif
 
         static EZPP()

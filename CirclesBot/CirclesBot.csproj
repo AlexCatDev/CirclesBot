@@ -25,10 +25,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="liboppai.so">
+    <None Update="Oppai\liboppai.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="oppai.dll">
+    <None Update="Oppai\oppai.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
