@@ -10,14 +10,58 @@ using System.Threading.Tasks;
 
 namespace CirclesBot
 {
+    public static class ItemCreator
+    {
+        public static Item Create99Skillcape()
+        {
+            Item i = new Item();
+            i.Icon = "<:99cape:813835496748482570>";
+            i.Name = "Level 99 Skillcape";
+            i.Description = "Gzz on level 99!";
+            return i;
+        }
+
+        public static Item CreateDragonClaws()
+        {
+            Item i = new Item();
+            i.Icon = "<:DragonClaws:813843093156528139>";
+            i.Name = "Dragon claws";
+            i.Description = "A set of fighting claws.";
+            i.Accuracy = 57;
+            i.Damage = 56;
+            return i;
+        }
+
+        public static Item CreateArmadylGodsword()
+        {
+            Item i = new Item();
+            i.Icon = "<:ArmadylGodsword:813843630464434256>";
+            i.Name = "Armadyl Godsword";
+            i.Description = "A beautiful, heavy sword.";
+            i.Accuracy = 132;
+            i.Damage = 132;
+            return i;
+        }
+
+        public static Item CreateShark()
+        {
+            Item i = new Item();
+            i.Icon = "<:Shark:813844041044328469>";
+            i.Name = "Shark";
+            i.Description = "I'd better be careful eating this.";
+            i.HealAmount = 20;
+            return i;
+        }
+    }
+
     public class Item
     {
         public string Icon;
         public string Name;
         public string Description;
 
-        public int Damage;
-        public int Accuracy;
+        public int Damage = -1;
+        public int Accuracy = -1;
 
         public int HealAmount = -1;
     }
@@ -46,7 +90,7 @@ namespace CirclesBot
         public List<Badge> Badges = new List<Badge>();
         public string OsuUsername = "";
         public bool IsLazy;
-        public int PreferredColor;
+        public uint PreferredColor;
 
         /// <summary>
         /// Runescape formula :P
@@ -118,18 +162,30 @@ namespace CirclesBot
 
             AddCMD("View your inventory", (sMsg, buffer) =>
             {
-                string output = "";
-                GetProfile(sMsg.Author.Id, profile =>
+                Discord.WebSocket.SocketUser userToCheck;
+
+                if (sMsg.MentionedUsers.Count > 0)
+                    userToCheck = sMsg.MentionedUsers.First();
+                else
+                    userToCheck = sMsg.Author;
+
+                string description = "";
+                EmbedBuilder builder = new EmbedBuilder();
+                builder.WithAuthor($"Inventory for {userToCheck.Username}", userToCheck.GetAvatarUrl());
+
+                GetProfile(userToCheck.Id, profile =>
                 {
                     foreach (var item in profile.Inventory)
                     {
-                        output += $"{item.Icon} : {item.Name} [{item.Description}] -> {item.Damage}\n";
+                        description += $"▸ {item.Icon} ▸ {item.Name}\n";
                     }
+
+                    builder.WithDescription(description);
+                    builder.WithColor(new Color(profile.PreferredColor));
+                    builder.WithFooter($"{profile.Inventory.Count} Items");
                 });
-                if (output == "")
-                    sMsg.Channel.SendMessageAsync("You have no items sir");
-                else
-                    sMsg.Channel.SendMessageAsync(output);
+
+                sMsg.Channel.SendMessageAsync("", false, builder.Build());
             }, ">inventory", ">inv");
 
             AddCMD("View your profile", (sMsg, buffer) =>
@@ -275,6 +331,7 @@ namespace CirclesBot
                             profile.XP += (ulong)Utils.GetRandomNumber(50, 200);
                             if(lvl == 98 && profile.Level == 99)
                             {
+                                profile.Inventory.Add(ItemCreator.Create99Skillcape());
                                 s.Channel.SendMessageAsync($"{s.Author.Mention}\n**Congratz on level 99!!! Now get a fucking life**\n{Program.XD}");
                             }
                         }

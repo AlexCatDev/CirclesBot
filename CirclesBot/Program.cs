@@ -387,7 +387,7 @@ namespace CirclesBot
                 return Task.Delay(0);
             };
 
-            Client.LoginAsync(TokenType.Bot, Config.OPTIONAL_DISCORD_API_KEY);
+            Client.LoginAsync(TokenType.Bot, Config.DISCORD_API_KEY);
             Logger.Log("Logging in...");
             Client.StartAsync();
 
