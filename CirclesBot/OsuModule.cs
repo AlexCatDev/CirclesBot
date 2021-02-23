@@ -446,6 +446,18 @@ namespace CirclesBot
 
             AddCMD("Compares plays for user", (sMsg, buffer) =>
             {
+                if (sMsg.Content.StartsWith(","))
+                {
+                    bool isLazy = false;
+                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
+                    {
+                        isLazy = profile.IsLazy;
+                    });
+
+                    if (isLazy == false)
+                        return;
+                }
+
                 bool isRipple = buffer.HasParameter("-ripple");
 
                 int? indexToCheck = (int?)buffer.GetInt();
@@ -522,7 +534,7 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">c", ">compare");
+            }, ">c", ">compare", ",");
 
             AddCMD("Shows your osu profile or someone elses", (sMsg, buffer) =>
             {
