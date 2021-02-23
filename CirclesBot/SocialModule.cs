@@ -38,6 +38,8 @@ namespace CirclesBot
         public List<Item> EquipedItems = new List<Item>();
 
         public ulong XP = 0;
+        public ulong Money = 0;
+
         public int Level => XPToLevel(XP) - 1;
         public ulong MessagesSent = 0;
         public List<Item> Inventory = new List<Item>();
