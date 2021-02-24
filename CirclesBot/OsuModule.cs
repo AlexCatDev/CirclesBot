@@ -425,16 +425,27 @@ namespace CirclesBot
                         return;
                     }
 
-                    if (mods == Mods.None)
+                    if (mods == Mods.Null)
                         mods = channelToScores[sMsg.Channel.Id][0].EnabledMods;
 
-                    var ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), 0, 0, 0, 0, Mods.None);
+                    string localBeatmap = BeatmapManager.GetBeatmap(beatmapID);
+
+                    var ez = EZPP.Calculate(localBeatmap, 0, 0, 0, 0, Mods.NM);
 
                     //idk how this works, but it just does
                     double estimatedCount100 = ((double)ez.TotalHitObjects / 66.7) * (100.0 - accuracy.Value);
 
-                    ez = EZPP.Calculate(BeatmapManager.GetBeatmap(beatmapID), ez.MaxCombo, (int)Math.Ceiling(estimatedCount100), 0, 0, mods);
-                    sMsg.Channel.SendMessageAsync($"**{ez.Accuracy.ToString("F2")}%** and mods **{mods.ToFriendlyString()}** is: **{ez.PP.ToString("F2")}** on **{ez.SongName} [{ez.DifficultyName}]**");
+                    int estimatedCount100Ceil = (int)Math.Ceiling(estimatedCount100);
+                    int estimatedCount100Floor = (int)Math.Floor(estimatedCount100);
+
+                    string output = $"**+{mods.ToFriendlyString()}** on **{ez.SongName} [{ez.DifficultyName}]**\n";
+
+                    ez = EZPP.Calculate(localBeatmap, ez.MaxCombo, estimatedCount100Ceil, 0, 0, mods);
+                    output += $"**{ez.Accuracy.ToString("F2")}%** ▸ **{ez.PP.ToString("F2")}PP**\n";
+                    ez = EZPP.Calculate(localBeatmap, ez.MaxCombo, estimatedCount100Floor, 0, 0, mods);
+                    output += $"**{ez.Accuracy.ToString("F2")}%** ▸ **{ez.PP.ToString("F2")}PP**";
+
+                    sMsg.Channel.SendMessageAsync(output);
                 }
                 catch (Exception ex)
                 {

@@ -5,21 +5,22 @@ namespace CirclesBot
     [Flags]
     public enum Mods
     {
-        None = 0,
-        NF = 1,
-        EZ = 2,
-        TD = 4,
-        HD = 8,
-        HR = 16,
-        SD = 32,
-        DT = 64,
-        RX = 128,
-        HT = 256,
-        NC = 512, // Only set along with DoubleTime. i.e: NC only gives 576
-        FL = 1024,
+        Null = -1, //Null mod (literally the absence of even Nomod)
+        NM = 0, //Nomod
+        NF = 1, //Nofail
+        EZ = 2, //Easy
+        TD = 4, //Touch device
+        HD = 8, //Hidden
+        HR = 16, //Hardrock
+        SD = 32, //Sudden death
+        DT = 64, //Double time
+        RX = 128, //Relax
+        HT = 256, //Half time
+        NC = 512, //Nightcore Only set along with DoubleTime. i.e: NC only gives 
+        FL = 1024, //Flashlight
         Auto = 2048,
-        SO = 4096,
-        AP = 8192,    // Autopilot
+        SO = 4096, //Spun out
+        AP = 8192, // Autopilot
         PF = 16384, // Only set along with SuddenDeath. i.e: PF only gives 16416  
         Key4 = 32768,
         Key5 = 65536,

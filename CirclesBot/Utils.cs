@@ -38,20 +38,34 @@ namespace CirclesBot
             return output;
         }
 
+        //Tries to convert a continous string of mods to a Mods enum
         public static Mods StringToMod(string modString)
         {
-            int output = 0;
+            //Start with our output at null
+            int output = (int)Mods.Null;
 
+            //Split the input string into chunks of two characters per string to read mods: Ex. (NM, DT, FL, EZ) etc..
             var chunks = modString.SplitInParts(2);
+
             foreach (var chunk in chunks)
             {
-                foreach (Mods mod in Enum.GetValues(typeof(Mods)))
+                //check if the current two characters is a valid mod
+                bool isMod = Enum.TryParse(chunk.ToString(), true, out Mods result);
+                if (isMod)
                 {
-                    if (mod.ToString().StartsWith(chunk.ToString().ToUpper()))
-                        output += (int)mod;
+                    //If it's a valid mod, check if our output is set to null, if it is, set it to 0 so we can add from a clean position
+                    if (((Mods)output) == Mods.Null)
+                        output = 0;
+
+                    //If the input mod was nomod, the above would already have it set to nomod, the if statement under will not go through
+
+                    //If the output mods doesnt already contain the input mod example being given (DT, DT, DT) Only take 1 dt and add it to the output
+                    if(((Mods)output).HasFlag(result) == false)
+                        output += (int)result;
+
+                    //Remember output is a flag so everything is additive
                 }
             }
-
             return (Mods)output;
         }
 
