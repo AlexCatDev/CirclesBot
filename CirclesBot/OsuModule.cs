@@ -31,7 +31,8 @@ namespace CirclesBot
         private EmbedBuilder CreateProfileEmbed(OsuProfile osuProfile)
         {
             EmbedBuilder embedBuilder = new EmbedBuilder();
-            embedBuilder.Description += $"▸ **Official Rank:** #{osuProfile.Rank} ({osuProfile.Country}#{osuProfile.CountryRank})\n";
+            embedBuilder.Description += $"▸ **[Profile Link](https://osu.ppy.sh/users/{osuProfile.ID}/osu)**\n";
+            embedBuilder.Description += $"▸ **Official Rank:** #{osuProfile.Rank}  ({osuProfile.Country}#{osuProfile.CountryRank})\n";
             embedBuilder.Description += $"▸ **Level:** {osuProfile.Level.ToString("F2")}\n▸ **Total PP:** {osuProfile.PP.ToString("F2")}\n";
             embedBuilder.Description += $"▸ **Hit Accuracy:** {osuProfile.Accuracy.ToString("F2")}%\n▸ **Playcount:** {osuProfile.Playcount}";
 
@@ -54,11 +55,16 @@ namespace CirclesBot
 
                 string isFCInfo = "";
 
-                if (!score.IsFC)
+                string placementText = "";
+
+                if (score.Placement > -1)
+                    placementText = $" `#{score.Placement}`";
+
+                if (((double)score.MaxCombo / score.MapMaxCombo) < 0.994)
                     isFCInfo = $" ({score.PP_IF_FC.ToString("F2")}PP for {score.IF_FC_Accuracy.ToString("F2")}% FC)";
 
                 temp += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]\n";
-                temp += $"▸ {Utils.GetEmoteForRankLetter(score.RankingLetter)} ▸ **{score.PP.ToString("F2")}PP**{isFCInfo} ▸ {score.Accuracy.ToString("F2")}%\n";
+                temp += $"▸ {Utils.GetEmoteForRankLetter(score.RankingLetter)} ▸ **{score.PP.ToString("F2")}PP**{placementText}{isFCInfo} ▸ {score.Accuracy.ToString("F2")}%\n";
                 temp += $"▸ {score.Score} ▸ x{score.MaxCombo}/{score.MapMaxCombo} ▸ [{score.Count300}/{score.Count100}/{score.Count50}/{score.CountMiss}]\n";
                 temp += $"▸ **AR:** {score.AR.ToString("F1")} **OD:** {score.OD.ToString("F1")} **HP:** {score.HP.ToString("F1")} **CS:** {score.CS.ToString("F1")} ▸ **BPM:** {score.BPM.ToString("F0")}\n";
 
@@ -290,6 +296,10 @@ namespace CirclesBot
                 try
                 {
                     List<BanchoAPI.BanchoBestScore> bestUserPlays = banchoAPI.GetBestPlays(userToCheck, 100);
+                    bestUserPlays.Sort((x, y) => y.PP.CompareTo(x.PP));
+
+                    List<BanchoAPI.BanchoBestScore> bestSortedUserPlays = new List<BanchoAPI.BanchoBestScore>(bestUserPlays);
+                    bestSortedUserPlays.Sort((x, y) => DateTime.Compare(y.DateOfPlay, x.DateOfPlay));
 
                     if (bestUserPlays.Count == 0)
                     {
@@ -318,31 +328,33 @@ namespace CirclesBot
                         }
                     }
 
-                    if (showRecent)
-                        bestUserPlays.Sort((x, y) => DateTime.Compare(y.DateOfPlay, x.DateOfPlay));
-                    else
-                        bestUserPlays.Sort((x, y) => y.PP.CompareTo(x.PP));
-
-                    try
-                    {
-                        int index = Math.Min(10, bestUserPlays.Count);
-                        bestUserPlays.RemoveRange(index, bestUserPlays.Count - index);
-                    }
-                    catch { }
-
-                    List<OsuScore> kek = new List<OsuScore>();
+                    List<OsuScore> scores = new List<OsuScore>();
                     for (int i = 0; i < bestUserPlays.Count; i++)
                     {
-                        var play = bestUserPlays[i];
-                        kek.Add(new OsuScore(BeatmapManager.GetBeatmap(play.BeatmapID), play));
+                        if (i >= 10)
+                            break;
+
+                        OsuScore score;
+
+                        if (showRecent)
+                        {
+                            score = new OsuScore(BeatmapManager.GetBeatmap(bestSortedUserPlays[i].BeatmapID), bestSortedUserPlays[i]);
+                            score.Placement = bestUserPlays.IndexOf(bestSortedUserPlays[i]) + 1;
+                        }
+                        else
+                        {
+                            score = new OsuScore(BeatmapManager.GetBeatmap(bestUserPlays[i].BeatmapID), bestUserPlays[i]);
+                            score.Placement = i + 1;
+                        }
+                        scores.Add(score);
                     }
 
-                    RememberScores(sMsg.Channel.Id, kek);
+                    RememberScores(sMsg.Channel.Id, scores);
 
-                    embedBuilder = CreateScoresEmbed(kek);
+                    embedBuilder = CreateScoresEmbed(scores);
                     string recent = showRecent ? "Recent " : "";
-                    embedBuilder.WithAuthor($"Top {recent}osu! Plays for {userToCheck}", BanchoAPI.GetProfileImageUrl(kek[0].UserID.ToString()));
-                    embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(kek[0].BeatmapID)).ToString()));
+                    embedBuilder.WithAuthor($"Top {recent}osu! Plays for {userToCheck}", BanchoAPI.GetProfileImageUrl(scores[0].UserID.ToString()));
+                    embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(scores[0].BeatmapID)).ToString()));
                     sMsg.Channel.SendMessageAsync("", false, embedBuilder.Build());
                 }
                 catch (Exception ex)
@@ -567,7 +579,7 @@ namespace CirclesBot
                     embedBuilder.WithAuthor($"osu! Profile For {userToCheck}", BanchoAPI.GetFlagImageUrl(user.Country));
 
                     embedBuilder.WithThumbnailUrl(BanchoAPI.GetProfileImageUrl(user.ID.ToString()));
-                    embedBuilder.WithFooter($"On {profile.Server}");
+                    embedBuilder.WithFooter($"On {profile.Server} Server");
                     sMsg.Channel.SendMessageAsync("", false, embedBuilder.Build());
                 }
                 catch (Exception ex)

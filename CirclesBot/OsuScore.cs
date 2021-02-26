@@ -4,6 +4,8 @@ namespace CirclesBot
 {
     public class OsuScore
     {
+        public int Placement = -1;
+
         public string Server { get; private set; }
 
         public DateTime Date { get; private set; }
