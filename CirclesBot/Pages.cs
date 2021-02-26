@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Discord.Rest;
 using System.Collections.Generic;
 
 namespace CirclesBot
@@ -21,31 +22,36 @@ namespace CirclesBot
 
     public class Pages
     {
-        private List<EmbedBuilder> pages = new List<EmbedBuilder>();
+        public RestUserMessage MessageHandle;
+
+        private List<Embed> pages = new List<Embed>();
 
         public int PageCount => pages.Count;
 
         private int pageIndex = 0;
 
-        public void AddContent(EmbedBuilder eb)
+        public void AddEmbed(Embed embed)
         {
-            pages.Add(eb);
+            pages.Add(embed);
         }
 
-        public EmbedBuilder GetFirst => pages[0].WithFooter($"Page: {pageIndex + 1}/{pages.Count}");
+        public Embed GetFirst => pages[0];
 
-        public void Handle(IUserMessage msg, PageDirection pageDirection)
+        public Embed GetCurrentPage => pages[pageIndex];
+
+        public void Handle(PageDirection direction)
         {
-            if (pageDirection == PageDirection.Forwards)
+            int previousPageIndex = pageIndex;
+
+            if(direction == PageDirection.Forwards)
                 pageIndex = Extensions.Clamp(pageIndex + 1, 0, pages.Count - 1);
-            else
+            if(direction == PageDirection.Backwards)
                 pageIndex = Extensions.Clamp(pageIndex - 1, 0, pages.Count - 1);
 
-            var pageToDisplay = pages[pageIndex];
+            if (previousPageIndex == pageIndex)
+                return;
 
-            pageToDisplay.WithFooter($"Page: {pageIndex + 1}/{pages.Count}");
-
-            msg.ModifyAsync(a => a.Embed = pages[pageIndex].Build());
+            MessageHandle.ModifyAsync(a => a.Embed = GetCurrentPage);
         }
     }
 }

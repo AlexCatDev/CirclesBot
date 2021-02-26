@@ -197,7 +197,7 @@ namespace CirclesBot
                         else
                         {
                             eb.WithDescription(desc);
-                            commandPages.AddContent(eb);
+                            commandPages.AddEmbed(eb.Build());
 
                             eb = new EmbedBuilder();
                             eb.WithAuthor("Commands available");
@@ -209,7 +209,7 @@ namespace CirclesBot
                 }
 
                 eb.WithDescription(desc);
-                commandPages.AddContent(eb);
+                commandPages.AddEmbed(eb.Build());
 
                 PagesHandler.SendPages(sMsg.Channel, commandPages);
             }, ">help");
@@ -358,28 +358,20 @@ namespace CirclesBot
                 return Task.Delay(0);
             };
 
-            Client.ReactionAdded += (s, e, x) =>
+            Client.ReactionAdded += async (s, e, x) =>
             {
-                if (x.User.Value.IsBot)
-                    return Task.Delay(0);
-
-                var msg = s.GetOrDownloadAsync().Result;
-
-                PagesHandler.Handle(msg, x);
-
-                return Task.Delay(0);
+                if (x.UserId != Client.CurrentUser.Id)
+                {
+                    PagesHandler.Handle(x.MessageId, x);
+                }
             };
 
-            Client.ReactionRemoved += (s, e, x) =>
+            Client.ReactionRemoved += async (s, e, x) =>
             {
-                if (x.User.Value.IsBot)
-                    return Task.Delay(0);
-
-                var msg = s.GetOrDownloadAsync().Result;
-
-                PagesHandler.Handle(msg, x);
-
-                return Task.Delay(0);
+                if (x.UserId != Client.CurrentUser.Id)
+                {
+                    PagesHandler.Handle(x.MessageId, x);
+                }
             };
 
             Client.GuildAvailable += (s) =>

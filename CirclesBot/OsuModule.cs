@@ -1,9 +1,7 @@
 ﻿using Discord;
-using Newtonsoft.Json;
+using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 
 namespace CirclesBot
@@ -23,7 +21,7 @@ namespace CirclesBot
 
         public override int Order => 0;
 
-        //(ulong: Discord channel id), (self explainatory)
+        //Maps a discord channel id to a list of osu! scores (ulong: Discord channel id), (self explainatory)
         private Dictionary<ulong, List<OsuScore>> channelToScores = new Dictionary<ulong, List<OsuScore>>();
 
         private BanchoAPI banchoAPI = new BanchoAPI(Program.Config.OSU_API_KEY);
@@ -81,44 +79,41 @@ namespace CirclesBot
 
                 tempDesc += $"▸ Score set {Utils.FormatTime(DateTime.UtcNow - score.Date)} On {score.Server}\n";
 
-                if(tempDesc.Length + description.Length >= 2048)
+                void AddToEmbed()
                 {
                     embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(
                         Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(firstScore.BeatmapID)).ToString()));
+
                     embedBuilder.WithDescription(description);
                     embedBuilder.WithAuthor($"{authorText}", BanchoAPI.GetProfileImageUrl(score.UserID.ToString()));
+
                     embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
 
-                    pages.AddContent(embedBuilder);
+                    //embedBuilder.WithFooter($"Displaying {scores.IndexOf(firstScore) + 1}-{scores.IndexOf(score) + 1}");
+
+                    pages.AddEmbed(embedBuilder.Build());
                     embedBuilder = new EmbedBuilder();
                     firstScore = null;
                     description = "";
+                }
+
+                if (tempDesc.Length + description.Length >= 2048)
+                {
+                    AddToEmbed();
                 }
                 else
                 {
                     description += tempDesc;
 
                     if (isLastScore)
-                    {
-                        embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(
-                        Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(firstScore.BeatmapID)).ToString()));
-                        embedBuilder.WithDescription(description);
-                        embedBuilder.WithAuthor($"{authorText}", BanchoAPI.GetProfileImageUrl(score.UserID.ToString()));
-                        embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
-
-                        pages.AddContent(embedBuilder);
-                    }
+                        AddToEmbed();
                 }
             }
-
-            //embedBuilder.WithFooter($"Plays shown: {count}/{scores.Count}");
-
-            //embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
 
             return pages;
         }
 
-        public string DecipherOsuUsername(Discord.WebSocket.SocketMessage sMsg, CommandBuffer buffer)
+        public string DecipherOsuUsername(SocketMessage sMsg, CommandBuffer buffer)
         {
             string username = "";
             if (sMsg.MentionedUsers.Count > 0)
@@ -147,7 +142,7 @@ namespace CirclesBot
 
                 if (username == "")
                 {
-                    sMsg.Channel.SendMessageAsync("Please mention someone, use their username or set your own with **>osuset <username>**");
+                    sMsg.Channel.SendMessageAsync("Please mention someone, use their osu! username or link your own osu! account with **>osuset <username>**");
                     return null;
                 }
             }
@@ -172,7 +167,7 @@ namespace CirclesBot
                     profile.IsLazy = true;
                 });
 
-                sMsg.Channel.SendMessageAsync("ofc you are :rolling_eyes:");
+                sMsg.Channel.SendMessageAsync("You can now use lazy commands.");
             }, ">iamlazy");
 
             AddCMD("You are not lazy", (sMsg, buffer) =>
@@ -181,11 +176,11 @@ namespace CirclesBot
                 {
                     profile.IsLazy = false;
                 });
-                sMsg.Channel.SendMessageAsync("yes you are but ok ig");
+                sMsg.Channel.SendMessageAsync("You can now __no longer__ use lazy commands.");
             }, ">iamnotlazy");
 
             //Optimized
-            AddCMD("Shows recent plays for user", (sMsg, buffer) =>
+            AddCMD("Display recent scores for you or someone else", (sMsg, buffer) =>
             {
                 if (sMsg.Content.StartsWith("."))
                 {
@@ -213,7 +208,7 @@ namespace CirclesBot
 
                     if (recentUserPlays.Count == 0)
                     {
-                        sMsg.Channel.SendMessageAsync($"**{userToCheck} don't have any recent plays** <:sadChamp:593405356864962560>");
+                        sMsg.Channel.SendMessageAsync($"**{userToCheck} doesn't have any recent plays!** <:sadChamp:593405356864962560>");
                         return;
                     }
 
@@ -237,7 +232,7 @@ namespace CirclesBot
                 }
             }, ">rs", ">recent", ".");
 
-            AddCMD("Shows user plays on a specific map", (sMsg, buffer) =>
+            AddCMD("Displays yours or someone elses scores on a specific map", (sMsg, buffer) =>
             {
                 bool ripple = buffer.HasParameter("-ripple");
                 string beatmap = buffer.GetParameter("https://osu.ppy.sh/beatmapsets/");
@@ -267,7 +262,7 @@ namespace CirclesBot
 
                     if (userPlays.Count == 0)
                     {
-                        sMsg.Channel.SendMessageAsync($"**{userToCheck} don't have any plays on this map** <:sadChamp:593405356864962560>");
+                        sMsg.Channel.SendMessageAsync($"**{userToCheck} doesn't have any plays on this map!** <:sadChamp:593405356864962560>");
                         return;
                     }
 
@@ -291,7 +286,7 @@ namespace CirclesBot
                 }
             }, ">scores", ">sc");
 
-            AddCMD("Shows top plays for user", (sMsg, buffer) =>
+            AddCMD("Displays yours or someone elses scores", (sMsg, buffer) =>
             {
                 bool showRecent = buffer.HasParameter("-r");
 
@@ -379,7 +374,7 @@ namespace CirclesBot
                 }
             }, ">top", ">osutop");
 
-            AddCMD("Get PP For fc", (sMsg, buffer) =>
+            AddCMD("Displays the PP for an fc with a given accuracy and mods", (sMsg, buffer) =>
             {
                 buffer.Discard("%");
 
@@ -482,7 +477,7 @@ namespace CirclesBot
                 }
             }, ">pp", ">fc");
 
-            AddCMD("Compares plays for user", (sMsg, buffer) =>
+            AddCMD("Compare yours or someone elses scores", (sMsg, buffer) =>
             {
                 if (sMsg.Content.StartsWith(","))
                 {
@@ -600,7 +595,7 @@ namespace CirclesBot
                 }
             }, ">osu");
 
-            AddCMD("Sets your osu user", (sMsg, buffer) =>
+            AddCMD("Links your osu! account to the bot", (sMsg, buffer) =>
             {
                 string[] user = sMsg.Content.Split(' ');
                 if (user.Length > 1)
