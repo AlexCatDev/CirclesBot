@@ -89,7 +89,7 @@ namespace CirclesBot
 
                     embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
 
-                    //embedBuilder.WithFooter($"Displaying {scores.IndexOf(firstScore) + 1}-{scores.IndexOf(score) + 1}");
+                    embedBuilder.WithFooter($"Displaying {scores.IndexOf(firstScore) + 1}/{scores.Count} Scores");
 
                     pages.AddEmbed(embedBuilder.Build());
                     embedBuilder = new EmbedBuilder();

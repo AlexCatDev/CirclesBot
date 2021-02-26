@@ -92,7 +92,7 @@ namespace CirclesBot
                 if (msg.Contains("@everyone"))
                     sMsg.Channel.SendMessageAsync($"no");
                 else
-                    sMsg.Channel.SendMessageAsync($":speech_balloon: **{msg}**");
+                    sMsg.Channel.SendMessageAsync($"{msg}");
 
             }, ">say");
 
