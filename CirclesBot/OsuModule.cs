@@ -40,22 +40,30 @@ namespace CirclesBot
             return embedBuilder;
         }
 
-        private EmbedBuilder CreateScoresEmbed(List<OsuScore> scores)
+        private Pages CreateScorePages(List<OsuScore> scores, string authorText)
         {
             EmbedBuilder embedBuilder = new EmbedBuilder();
+            Pages pages = new Pages();
 
             int count = 0;
             string description = "";
 
+            OsuScore firstScore = null;
+
             foreach (var score in scores)
             {
+                if (firstScore == null)
+                    firstScore = score;
+
                 count++;
 
-                string temp = "";
+                string tempDesc = "";
 
                 string isFCInfo = "";
 
                 string placementText = "";
+
+                bool isLastScore = scores.IndexOf(score) == scores.Count - 1;
 
                 if (score.Placement > -1)
                     placementText = $" `#{score.Placement}`";
@@ -63,34 +71,51 @@ namespace CirclesBot
                 if (((double)score.MaxCombo / score.MapMaxCombo) < 0.994)
                     isFCInfo = $" ({score.PP_IF_FC.ToString("F2")}PP for {score.IF_FC_Accuracy.ToString("F2")}% FC)";
 
-                temp += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]\n";
-                temp += $"▸ {Utils.GetEmoteForRankLetter(score.RankingLetter)} ▸ **{score.PP.ToString("F2")}PP**{placementText}{isFCInfo} ▸ {score.Accuracy.ToString("F2")}%\n";
-                temp += $"▸ {score.Score} ▸ x{score.MaxCombo}/{score.MapMaxCombo} ▸ [{score.Count300}/{score.Count100}/{score.Count50}/{score.CountMiss}]\n";
-                temp += $"▸ **AR:** {score.AR.ToString("F1")} **OD:** {score.OD.ToString("F1")} **HP:** {score.HP.ToString("F1")} **CS:** {score.CS.ToString("F1")} ▸ **BPM:** {score.BPM.ToString("F0")}\n";
+                tempDesc += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]\n";
+                tempDesc += $"▸ {Utils.GetEmoteForRankLetter(score.RankingLetter)} ▸ **{score.PP.ToString("F2")}PP**{placementText}{isFCInfo} ▸ {score.Accuracy.ToString("F2")}%\n";
+                tempDesc += $"▸ {score.Score} ▸ x{score.MaxCombo}/{score.MapMaxCombo} ▸ [{score.Count300}/{score.Count100}/{score.Count50}/{score.CountMiss}]\n";
+                tempDesc += $"▸ **AR:** {score.AR.ToString("F1")} **OD:** {score.OD.ToString("F1")} **HP:** {score.HP.ToString("F1")} **CS:** {score.CS.ToString("F1")} ▸ **BPM:** {score.BPM.ToString("F0")}\n";
 
                 if (score.IsPass == false)
-                    temp += $"▸ **Map Completion:** {score.CompletionPercentage.ToString("F2")}%\n";
+                    tempDesc += $"▸ **Map Completion:** {score.CompletionPercentage.ToString("F2")}%\n";
 
-                temp += $"▸ Score set {Utils.FormatTime(DateTime.UtcNow - score.Date)} On {score.Server}\n";
+                tempDesc += $"▸ Score set {Utils.FormatTime(DateTime.UtcNow - score.Date)} On {score.Server}\n";
 
-                if (temp.Length + description.Length < 2048)
+                if(tempDesc.Length + description.Length >= 2048)
                 {
-                    description += temp;
+                    embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(
+                        Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(firstScore.BeatmapID)).ToString()));
+                    embedBuilder.WithDescription(description);
+                    embedBuilder.WithAuthor($"{authorText}", BanchoAPI.GetProfileImageUrl(score.UserID.ToString()));
+                    embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
+
+                    pages.AddContent(embedBuilder);
+                    embedBuilder = new EmbedBuilder();
+                    firstScore = null;
+                    description = "";
                 }
                 else
                 {
-                    count--;
-                    break;
+                    description += tempDesc;
+
+                    if (isLastScore)
+                    {
+                        embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(
+                        Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(firstScore.BeatmapID)).ToString()));
+                        embedBuilder.WithDescription(description);
+                        embedBuilder.WithAuthor($"{authorText}", BanchoAPI.GetProfileImageUrl(score.UserID.ToString()));
+                        embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
+
+                        pages.AddContent(embedBuilder);
+                    }
                 }
             }
 
-            embedBuilder.WithDescription(description);
+            //embedBuilder.WithFooter($"Plays shown: {count}/{scores.Count}");
 
-            embedBuilder.WithFooter($"Plays shown: {count}/{scores.Count}");
+            //embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
 
-            embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
-
-            return embedBuilder;
+            return pages;
         }
 
         public string DecipherOsuUsername(Discord.WebSocket.SocketMessage sMsg, CommandBuffer buffer)
@@ -192,22 +217,18 @@ namespace CirclesBot
                         return;
                     }
 
-                    List<OsuScore> kek = new List<OsuScore>();
+                    List<OsuScore> scores = new List<OsuScore>();
 
                     foreach (var rup in recentUserPlays)
                     {
-                        kek.Add(new OsuScore(BeatmapManager.GetBeatmap(rup.BeatmapID), rup));
+                        scores.Add(new OsuScore(BeatmapManager.GetBeatmap(rup.BeatmapID), rup));
                     }
 
-                    RememberScores(sMsg.Channel.Id, kek);
+                    RememberScores(sMsg.Channel.Id, scores);
 
-                    EmbedBuilder embedBuilder = CreateScoresEmbed(kek);
+                    Pages pages = CreateScorePages(scores, $"Recent plays for {userToCheck}");
 
-                    embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(kek[0].BeatmapID)).ToString()));
-
-                    embedBuilder.WithAuthor($"Recent Plays for {userToCheck}", BanchoAPI.GetProfileImageUrl(recentUserPlays[0].UserID.ToString()));
-
-                    sMsg.Channel.SendMessageAsync("", false, embedBuilder.Build());
+                    PagesHandler.SendPages(sMsg.Channel, pages);
                 }
                 catch (Exception ex)
                 {
@@ -250,22 +271,18 @@ namespace CirclesBot
                         return;
                     }
 
-                    List<OsuScore> kek = new List<OsuScore>();
+                    List<OsuScore> scores = new List<OsuScore>();
 
                     foreach (var rup in userPlays)
                     {
-                        kek.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID), rup, beatmapID));
+                        scores.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID), rup, beatmapID));
                     }
 
-                    RememberScores(sMsg.Channel.Id, kek);
+                    RememberScores(sMsg.Channel.Id, scores);
 
-                    EmbedBuilder embedBuilder = CreateScoresEmbed(kek);
+                    Pages pages = CreateScorePages(scores, $"Scores for {userToCheck} on {beatmapID}");
 
-                    embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(beatmapID)).ToString()));
-
-                    embedBuilder.WithAuthor($"Plays for {userToCheck}", BanchoAPI.GetProfileImageUrl(userPlays[0].UserID.ToString()));
-
-                    sMsg.Channel.SendMessageAsync("", false, embedBuilder.Build());
+                    PagesHandler.SendPages(sMsg.Channel, pages);
                 }
                 catch (Exception ex)
                 {
@@ -351,11 +368,9 @@ namespace CirclesBot
 
                     RememberScores(sMsg.Channel.Id, scores);
 
-                    embedBuilder = CreateScoresEmbed(scores);
-                    string recent = showRecent ? "Recent " : "";
-                    embedBuilder.WithAuthor($"Top {recent}osu! Plays for {userToCheck}", BanchoAPI.GetProfileImageUrl(scores[0].UserID.ToString()));
-                    embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(scores[0].BeatmapID)).ToString()));
-                    sMsg.Channel.SendMessageAsync("", false, embedBuilder.Build());
+                    Pages pages = CreateScorePages(scores, $"Top osu! scores for {userToCheck}");
+
+                    PagesHandler.SendPages(sMsg.Channel, pages);
                 }
                 catch (Exception ex)
                 {
@@ -445,7 +460,7 @@ namespace CirclesBot
                     var ez = EZPP.Calculate(localBeatmap, 0, 0, 0, 0, Mods.NM);
 
                     //idk how this works, but it just does
-                    double estimatedCount100 = ((double)ez.TotalHitObjects / 66.7) * (100.0 - accuracy.Value);
+                    double estimatedCount100 = (ez.TotalHitObjects / 66.7) * (100.0 - accuracy.Value);
 
                     int estimatedCount100Ceil = (int)Math.Ceiling(estimatedCount100);
                     int estimatedCount100Floor = (int)Math.Floor(estimatedCount100);
@@ -534,22 +549,18 @@ namespace CirclesBot
                         return;
                     }
 
-                    List<OsuScore> kek = new List<OsuScore>();
+                    List<OsuScore> scores = new List<OsuScore>();
 
                     for (int i = 0; i < userPlays.Count; i++)
                     {
                         var play = userPlays[i];
 
-                        kek.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID), play, beatmapID));
+                        scores.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID), play, beatmapID));
                     }
 
-                    embedBuilder = CreateScoresEmbed(kek);
+                    Pages pages = CreateScorePages(scores, $"Scores for {userToCheck} on {beatmapID}");
 
-                    embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(beatmapID)).ToString()));
-
-                    embedBuilder.WithAuthor($"Plays for {userToCheck}", BanchoAPI.GetProfileImageUrl(userPlays[0].UserID.ToString()));
-
-                    sMsg.Channel.SendMessageAsync("", false, embedBuilder.Build());
+                    PagesHandler.SendPages(sMsg.Channel, pages);
                 }
                 catch (Exception ex)
                 {
