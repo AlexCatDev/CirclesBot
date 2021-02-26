@@ -79,7 +79,7 @@ namespace CirclesBot
 
                 tempDesc += $"▸ Score set {Utils.FormatTime(DateTime.UtcNow - score.Date)} On {score.Server}\n";
 
-                void AddToEmbed()
+                void CompileEmbed()
                 {
                     embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(
                         Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(firstScore.BeatmapID)).ToString()));
@@ -99,14 +99,14 @@ namespace CirclesBot
 
                 if (tempDesc.Length + description.Length >= 2048)
                 {
-                    AddToEmbed();
+                    CompileEmbed();
                 }
                 else
                 {
                     description += tempDesc;
 
                     if (isLastScore)
-                        AddToEmbed();
+                        CompileEmbed();
                 }
             }
 
@@ -204,7 +204,7 @@ namespace CirclesBot
 
                 try
                 {
-                    List<BanchoAPI.BanchoRecentScore> recentUserPlays = banchoAPI.GetRecentPlays(userToCheck, showList ? 20 : 1);
+                    List<BanchoAPI.BanchoRecentScore> recentUserPlays = banchoAPI.GetRecentPlays(userToCheck, showList ? 10 : 1);
 
                     if (recentUserPlays.Count == 0)
                     {

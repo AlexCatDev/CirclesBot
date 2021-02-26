@@ -7,6 +7,9 @@ namespace CirclesBot
 {
     public static class PagesHandler
     {
+        const string ForwardsEmote = "➡";
+        const string BackwardsEmote = "⬅";
+
         private static Dictionary<ulong, Pages> pagesDict = new Dictionary<ulong, Pages>();
 
         public static void SendPages(this ISocketMessageChannel msgChannel, Pages pages)
@@ -17,7 +20,7 @@ namespace CirclesBot
 
             if (pages.PageCount > 1)
             {
-                sendMessage.AddReactionsAsync(new IEmote[] { new LeftArrowEmote(), new RightArrowEmote() }).GetAwaiter().GetResult();
+                sendMessage.AddReactionsAsync(new IEmote[] { new Emoji(BackwardsEmote), new Emoji(ForwardsEmote) }).GetAwaiter().GetResult();
 
                 pagesDict.Add(pages.MessageHandle.Id, pages);
             }
@@ -27,10 +30,10 @@ namespace CirclesBot
         {
             if (pagesDict.TryGetValue(msgID, out Pages page))
             {
-                if (reaction.Emote.Name == "➡")
-                    page.Handle(PageDirection.Forwards);
-                else if (reaction.Emote.Name == "⬅")
-                    page.Handle(PageDirection.Backwards);
+                if (reaction.Emote.Name == ForwardsEmote)
+                    page.GoForwards();
+                else if (reaction.Emote.Name == BackwardsEmote)
+                    page.GoBackwards();
             }
         }
     }

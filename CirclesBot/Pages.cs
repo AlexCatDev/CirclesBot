@@ -4,22 +4,6 @@ using System.Collections.Generic;
 
 namespace CirclesBot
 {
-    public enum PageDirection
-    {
-        Forwards,
-        Backwards
-    }
-
-    public class LeftArrowEmote : IEmote
-    {
-        public string Name => "⬅";
-    }
-
-    public class RightArrowEmote : IEmote
-    {
-        public string Name => "➡";
-    }
-
     public class Pages
     {
         public RestUserMessage MessageHandle;
@@ -39,18 +23,28 @@ namespace CirclesBot
 
         public Embed GetCurrentPage => pages[pageIndex];
 
-        public void Handle(PageDirection direction)
+        public void GoForwards()
         {
-            int previousPageIndex = pageIndex;
+            int previousIndex = pageIndex;
 
-            if(direction == PageDirection.Forwards)
-                pageIndex = Extensions.Clamp(pageIndex + 1, 0, pages.Count - 1);
-            if(direction == PageDirection.Backwards)
-                pageIndex = Extensions.Clamp(pageIndex - 1, 0, pages.Count - 1);
+            pageIndex = Extensions.Clamp(pageIndex + 1, 0, pages.Count - 1);
 
-            if (previousPageIndex == pageIndex)
-                return;
+            if (previousIndex != pageIndex)
+                updateMessage();
+        }
 
+        public void GoBackwards()
+        {
+            int previousIndex = pageIndex;
+
+            pageIndex = Extensions.Clamp(pageIndex - 1, 0, pages.Count - 1);
+
+            if (previousIndex != pageIndex)
+                updateMessage();
+        }
+
+        private void updateMessage()
+        {
             MessageHandle.ModifyAsync(a => a.Embed = GetCurrentPage);
         }
     }
