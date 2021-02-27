@@ -96,6 +96,20 @@ namespace CirclesBot
 
             }, ">say");
 
+            AddCMD("Roll a random number", (sMsg, buffer) =>
+            {
+                int? max = buffer.GetInt();
+
+                if (max == null)
+                    max = 100;
+                else if (max != null)
+                    max = Math.Max(max.Value, 2);
+
+                int roll = Utils.GetRandomNumber(1, max.Value);
+
+                sMsg.Channel.SendMessageAsync($"{sMsg.Author.Mention} :game_die: {roll} :game_die:");
+            }, ">roll");
+
             Commands.Add(new Command("Call another server lol", async (sMsg, buffer) =>
             {
                 string message = buffer.GetRemaining().Replace("_", " ");
