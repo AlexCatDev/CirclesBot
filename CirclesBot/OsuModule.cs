@@ -160,7 +160,7 @@ namespace CirclesBot
 
         public OsuModule()
         {
-            AddCMD("You are lazy", (sMsg, buffer) =>
+            AddCMD("Enabled the use of '.' in place of >rs", (sMsg, buffer) =>
             {
                 Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
                 {
@@ -170,7 +170,7 @@ namespace CirclesBot
                 sMsg.Channel.SendMessageAsync("You can now use lazy commands.");
             }, ">iamlazy");
 
-            AddCMD("You are not lazy", (sMsg, buffer) =>
+            AddCMD("Enabled the use of ',' in place of >c", (sMsg, buffer) =>
             {
                 Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
                 {
@@ -216,7 +216,8 @@ namespace CirclesBot
 
                     foreach (var rup in recentUserPlays)
                     {
-                        scores.Add(new OsuScore(BeatmapManager.GetBeatmap(rup.BeatmapID), rup));
+                        OsuScore score = new OsuScore(BeatmapManager.GetBeatmap(rup.BeatmapID), rup);
+                        scores.Add(score);
                     }
 
                     RememberScores(sMsg.Channel.Id, scores);
