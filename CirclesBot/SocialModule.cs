@@ -135,7 +135,7 @@ namespace CirclesBot
         {
             lock (profileLock)
             {
-                DiscordProfile profile;
+                DiscordProfile profile = null;
 
                 if (File.Exists($"{DiscordProfileDirectory}/{discordID}"))
                 {
@@ -147,7 +147,6 @@ namespace CirclesBot
                 }
 
                 modifyAction?.Invoke(profile);
-
                 File.WriteAllText($"{DiscordProfileDirectory}/{discordID}", JsonConvert.SerializeObject(profile));
             }
         }

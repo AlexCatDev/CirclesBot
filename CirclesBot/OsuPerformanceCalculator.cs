@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,29 +7,134 @@ using System.Threading.Tasks;
 
 namespace CirclesBot
 {
-    /*
-    /// <summary>
-    /// i dont wanna do this
-    /// </summary>
-    public class OsuBeatmap
+    public enum OsuMode
     {
-        
-        public double RawAim { get; set; }
-        public double RawSpeed { get; set; }
-
-        public double ApproachRate;
-        public double OverallDifficulty;
-        public double HitPoints;
-        public double CircleSize;
-
-        public int MaxCombo;
-        public int TotalHitObjects;
-
-        public int SpinnerCount;
-        public int SliderCount;
-        public int HitCircleCount;
+        Standard,
+        Taiko,
+        CTB,
+        Mania
     }
 
+    public class OsuBeatmap
+    {
+        [JsonProperty("approved")]
+        public int Approved { get; set; }
+
+        [JsonProperty("submit_date")]
+        public DateTime SubmitDate { get; set; }
+
+        [JsonProperty("approved_date")]
+        public DateTime ApprovedDate { get; set; }
+
+        [JsonProperty("last_update")]
+        public DateTime LastUpdate { get; set; }
+
+        [JsonProperty("artist")]
+        public string Artist { get; set; }
+
+        [JsonProperty("beatmap_id")]
+        public ulong BeatmapID { get; set; }
+
+        [JsonProperty("beatmapset_id")]
+        public ulong BeatmapsetID { get; set; }
+
+        [JsonProperty("bpm")]
+        public int BPM { get; set; }
+
+        [JsonProperty("creator")]
+        public string Creator { get; set; }
+
+        [JsonProperty("creator_id")]
+        public ulong CreatorID { get; set; }
+
+        [JsonProperty("difficultyrating")]
+        public double StarRating { get; set; }
+
+        [JsonProperty("diff_aim")]
+        public double AimStarRating { get; set; }
+
+        [JsonProperty("diff_speed")]
+        public double SpeedStarRating { get; set; }
+
+        [JsonProperty("diff_size")]
+        public double CircleSize { get; set; }
+
+        [JsonProperty("diff_overall")]
+        public double OverallDifficulty { get; set; }
+
+        [JsonProperty("diff_approach")]
+        public double ApproachRate { get; set; }
+
+        [JsonProperty("diff_drain")]
+        public double Hitpoints { get; set; }
+
+        [JsonProperty("hit_length")]
+        public int HitLength { get; set; }
+
+        [JsonProperty("source")]
+        public string Source { get; set; }
+
+        [JsonProperty("genre_id")]
+        public ulong GenreID { get; set; }
+
+        [JsonProperty("language_id")]
+        public ulong LanguageID { get; set; }
+
+        [JsonProperty("title")]
+        public string Title { get; set; }
+
+        [JsonProperty("total_length")]
+        public int TotalLength { get; set; }
+
+        [JsonProperty("version")]
+        public string Version { get; set; }
+
+        [JsonProperty("file_md5")]
+        public string FileMD5 { get; set; }
+
+        [JsonProperty("mode")]
+        public OsuMode Mode { get; set; }
+
+        [JsonProperty("tags")]
+        public string Tags { get; set; }
+
+        [JsonProperty("favourite_count")]
+        public int FavouriteCount { get; set; }
+
+        [JsonProperty("rating")]
+        public double UserRating { get; set; }
+
+        [JsonProperty("playcount")]
+        public int PlayCount { get; set; }
+
+        [JsonProperty("passcount")]
+        public int PassCount { get; set; }
+
+        [JsonProperty("count_normal")]
+        public int HitCircleCount { get; set; }
+
+        [JsonProperty("count_slider")]
+        public int SliderCount { get; set; }
+
+        [JsonProperty("count_spinner")]
+        public int SpinnerCount { get; set; }
+
+        [JsonProperty("max_combo")]
+        public int MaxCombo { get; set; }
+
+        [JsonProperty("storyboard")]
+        public bool HasStoryboard { get; set; }
+
+        [JsonProperty("video")]
+        public bool HasVideo { get; set; }
+
+        [JsonProperty("download_unavailable")]
+        public bool IsDownloadUnavailable { get; set; }
+
+        [JsonProperty("audio_unavailable")]
+        public bool IsAudioUnavailable { get; set; }
+    }
+    
     public class OsuPerformanceCalculator
     {
         private OsuBeatmap beatmap;
@@ -37,9 +143,9 @@ namespace CirclesBot
 
         private double accuracy;
         private int scoreMaxCombo;
-        private int countGreat;
-        private int countOk;
-        private int countMeh;
+        private int count300;
+        private int count100;
+        private int count50;
         private int countMiss;
 
         public OsuPerformanceCalculator(OsuBeatmap beatmap, Mods mods, int maxCombo, int count300, int count100, int count50, int countMiss, double accuracy)
@@ -47,9 +153,9 @@ namespace CirclesBot
             this.beatmap = beatmap;
             this.mods = mods;
             this.scoreMaxCombo = maxCombo;
-            this.countGreat = count300;
-            this.countOk = count100;
-            this.countMeh = count50;
+            this.count300 = count300;
+            this.count100 = count100;
+            this.count50 = count50;
             this.countMiss = countMiss;
         }
 
@@ -58,10 +164,10 @@ namespace CirclesBot
             // Custom multipliers for NoFail and SpunOut.
             double multiplier = 1.12; // This is being adjusted to keep the final pp value scaled around what it used to be when changing things
 
-            if (mods == Mods.NF)
+            if (mods.HasFlag(Mods.NF))
                 multiplier *= Math.Max(0.90, 1.0 - 0.02 * countMiss);
 
-            if (mods == Mods.SO)
+            if (mods.HasFlag(Mods.SO))
                 multiplier *= 1.0 - Math.Pow((double)beatmap.SpinnerCount / totalHits, 0.85);
 
             double aimValue = computeAimValue();
@@ -79,9 +185,9 @@ namespace CirclesBot
 
         private double computeAimValue()
         {
-            double rawAim = beatmap.RawAim;
+            double rawAim = beatmap.AimStarRating;
 
-            if (mods == Mods.TD)
+            if (mods.HasFlag(Mods.TD))
                 rawAim = Math.Pow(rawAim, 0.8);
 
             double aimValue = Math.Pow(5.0 * Math.Max(1.0, rawAim / 0.0675) - 4.0, 3.0) / 100000.0;
@@ -109,10 +215,10 @@ namespace CirclesBot
             aimValue *= 1.0 + Math.Min(approachRateFactor, approachRateFactor * (totalHits / 1000.0));
 
             // We want to give more reward for lower AR when it comes to aim and HD. This nerfs high AR and buffs lower AR.
-            if (mods == Mods.HD)
+            if (mods.HasFlag(Mods.HD))
                 aimValue *= 1.0 + 0.04 * (12.0 - beatmap.ApproachRate);
 
-            if (mods == Mods.FL)
+            if (mods.HasFlag(Mods.FL))
             {
                 // Apply object-based bonus for flashlight.
                 aimValue *= 1.0 + 0.35 * Math.Min(1.0, totalHits / 200.0) +
@@ -132,7 +238,7 @@ namespace CirclesBot
 
         private double computeSpeedValue()
         {
-            double speedValue = Math.Pow(5.0 * Math.Max(1.0, beatmap.RawSpeed / 0.0675) - 4.0, 3.0) / 100000.0;
+            double speedValue = Math.Pow(5.0 * Math.Max(1.0, beatmap.SpeedStarRating / 0.0675) - 4.0, 3.0) / 100000.0;
 
             // Longer maps are worth more
             double lengthBonus = 0.95 + 0.4 * Math.Min(1.0, totalHits / 2000.0) +
@@ -153,13 +259,13 @@ namespace CirclesBot
 
             speedValue *= 1.0 + Math.Min(approachRateFactor, approachRateFactor * (totalHits / 1000.0));
 
-            if (mods == Mods.HD)
+            if (mods.HasFlag(Mods.HD))
                 speedValue *= 1.0 + 0.04 * (12.0 - beatmap.ApproachRate);
 
             // Scale the speed value with accuracy and OD
             speedValue *= (0.95 + Math.Pow(beatmap.OverallDifficulty, 2) / 750) * Math.Pow(accuracy, (14.5 - Math.Max(beatmap.OverallDifficulty, 8)) / 2);
             // Scale the speed value with # of 50s to punish doubletapping.
-            speedValue *= Math.Pow(0.98, countMeh < totalHits / 500.0 ? 0 : countMeh - totalHits / 500.0);
+            speedValue *= Math.Pow(0.98, count50 < totalHits / 500.0 ? 0 : count50 - totalHits / 500.0);
 
             return speedValue;
         }
@@ -171,7 +277,7 @@ namespace CirclesBot
             int amountHitObjectsWithAccuracy = beatmap.HitCircleCount;
 
             if (amountHitObjectsWithAccuracy > 0)
-                betterAccuracyPercentage = ((countGreat - (totalHits - amountHitObjectsWithAccuracy)) * 6 + countOk * 2 + countMeh) / (double)(amountHitObjectsWithAccuracy * 6);
+                betterAccuracyPercentage = ((count300 - (totalHits - amountHitObjectsWithAccuracy)) * 6 + count100 * 2 + count50) / (double)(amountHitObjectsWithAccuracy * 6);
             else
                 betterAccuracyPercentage = 0;
 
@@ -186,16 +292,16 @@ namespace CirclesBot
             // Bonus for many hitcircles - it's harder to keep good accuracy up for longer
             accuracyValue *= Math.Min(1.15, Math.Pow(amountHitObjectsWithAccuracy / 1000.0, 0.3));
 
-            if (mods == Mods.HD)
+            if (mods.HasFlag(Mods.HD))
                 accuracyValue *= 1.08;
-            if (mods == Mods.FL)
+            if (mods.HasFlag(Mods.FL))
                 accuracyValue *= 1.02;
 
             return accuracyValue;
         }
 
-        private int totalHits => countGreat + countOk + countMeh + countMiss;
-        private int totalSuccessfulHits => countGreat + countOk + countMeh;
+        private int totalHits => count300 + count100 + count50 + countMiss;
+        private int totalSuccessfulHits => count300 + count100 + count50;
     }
-    */
+    
 }

@@ -12,6 +12,23 @@ using Newtonsoft.Json;
 
 namespace CirclesBot
 {
+    class ReactionCollector
+    {
+        public ulong MessageID;
+        public Discord.Rest.RestUserMessage MessageHandle;
+
+        private IEmote[] emotes;
+        private Action<Discord.Rest.RestUserMessage, SocketUser, IEmote, bool> onReactionChanged;
+        private int timeout;
+
+        public ReactionCollector(Action<Discord.Rest.RestUserMessage, SocketUser, IEmote, bool> onReactionChanged, int timeout, params IEmote[] emotes)
+        {
+            this.emotes = emotes;
+            this.onReactionChanged = onReactionChanged;
+            this.timeout = timeout;
+        }
+    }
+
     /// <summary>
     /// TODO LIST
     /// 
