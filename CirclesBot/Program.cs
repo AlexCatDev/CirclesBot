@@ -236,6 +236,8 @@ namespace CirclesBot
 
         static void Main(string[] args)
         {
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+
             if (!File.Exists(Config.Filename))
             {
                 Logger.Log($"No config, please put your credentials into {Config.Filename}. Press enter when you have done that.");
@@ -247,8 +249,10 @@ namespace CirclesBot
             {
                 try
                 {
+                    Logger.Log("Parsing config");
                     Config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(Config.Filename));
                     Config.Verify();
+                    Logger.Log("Parsed config", LogLevel.Success);
                     break;
                 }
                 catch(Exception ex)
@@ -258,12 +262,6 @@ namespace CirclesBot
                     Console.ReadLine();
                 }
             }
-
-            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-
-            Logger.Log("Running bot!");
-
-            bool signalKill = false;
 
             Logger.Log("Loading Modules", LogLevel.Info);
 
@@ -317,7 +315,7 @@ namespace CirclesBot
                 if (s.Content.ToLower() == ">die" && s.Author.Id == Config.BotOwnerID)
                 {
                     s.Channel.SendMessageAsync("ok i die").GetAwaiter().GetResult();
-                    signalKill = true;
+                    Client.LogoutAsync();
                     return Task.Delay(0);
                 }
 
