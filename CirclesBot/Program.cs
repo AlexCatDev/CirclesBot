@@ -76,6 +76,8 @@ namespace CirclesBot
 
         public static ulong TotalCommandsHandled;
 
+        public static event EventHandler<double> OnSimulateWorld;
+
         public static int GetMemberCount()
         {
             int total = 0;
@@ -375,37 +377,19 @@ namespace CirclesBot
                 return Task.Delay(0);
             };
 
-            Client.ReactionAdded += async (s, e, x) =>
-            {
-                
-            };
-
-            Client.ReactionRemoved += async (s, e, x) =>
-            {
-                
-            };
-
-            Client.GuildAvailable += (s) =>
-            {
-                return Task.Delay(0);
-            };
-
             Client.LoginAsync(TokenType.Bot, Config.DISCORD_API_KEY);
             Logger.Log("Logging in...");
             Client.StartAsync();
 
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
+            Stopwatch simulationWatch = new Stopwatch();
             while (true)
             {
-                Thread.Sleep(10);
-                if (signalKill)
-                {
-                    Client.LogoutAsync().GetAwaiter().GetResult();
-                    Logger.Log("logged out bye, press enter to continue", LogLevel.Warning);
-                    Console.ReadLine();
-                    Environment.Exit(0);
-                }
+                double deltaTime = ((double)simulationWatch.ElapsedTicks / Stopwatch.Frequency);
+
+                OnSimulateWorld?.Invoke(null, deltaTime);
+
+                simulationWatch.Restart();
+                Thread.Sleep(1);
             }
         }
     }
