@@ -167,59 +167,6 @@ namespace CirclesBot
                 embed.WithColor(Color.Blue);
                 sMsg.Channel.SendMessageAsync("", false, embed.Build());
             }, ">info");
-            /*
-            //This is very ugly
-            AddCMD("Shows this embed", (sMsg, buffer) =>
-            {
-                Pages commandPages = new Pages();
-
-                string desc = "";
-
-                EmbedBuilder eb = new EmbedBuilder();
-                eb.WithAuthor("Commands available");
-                foreach (var module in LoadedModules)
-                {
-                    string tempDesc = "";
-                    tempDesc += $"`{module.Name}`\n";
-                    for (int i = 0; i < module.Commands.Count; i++)
-                    {
-                        var currentCommand = module.Commands[i];
-                        string triggerText = "";
-                        for (int j = 0; j < currentCommand.Triggers.Count; j++)
-                        {
-                            bool isLast = j == currentCommand.Triggers.Count - 1;
-                            triggerText += currentCommand.Triggers[j];
-
-                            if (!isLast)
-                                triggerText += ", ";
-                        }
-                        tempDesc += $"**{i + 1}.** {triggerText} **{currentCommand.Description}**\n";
-
-                        if (desc.Length + tempDesc.Length < 2048)
-                        {
-                            desc += tempDesc;
-                            tempDesc = "";
-                        }
-                        else
-                        {
-                            eb.WithDescription(desc);
-                            commandPages.AddEmbed(eb.Build());
-
-                            eb = new EmbedBuilder();
-                            eb.WithAuthor("Commands available");
-
-                            desc = "";
-                            desc += tempDesc;
-                        }
-                    }
-                }
-
-                eb.WithDescription(desc);
-                commandPages.AddEmbed(eb.Build());
-
-                PagesHandler.SendPages(sMsg.Channel, commandPages);
-            }, ">help");
-            */
 
             AddCMD("Shows this embed", (sMsg, buffer) =>
             {
@@ -238,6 +185,8 @@ namespace CirclesBot
                         builder.Description += "\n";
                     }
                 }
+
+                builder.WithFooter($"{builder.Description.Length} chars");
                 sMsg.Channel.SendMessageAsync("", false, builder.Build());
             }, ">help");
         }
