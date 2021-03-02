@@ -276,7 +276,7 @@ namespace CirclesBot
 
                     RememberScores(sMsg.Channel.Id, scores);
 
-                    Pages pages = CreateScorePages(scores, $"Scores for {userToCheck} on {beatmapID}");
+                    Pages pages = CreateScorePages(scores, $"Scores for {userToCheck} on on {scores[0].SongName} [{scores[0].DifficultyName}]");
 
                     PagesHandler.SendPages(sMsg.Channel, pages);
                 }
@@ -554,7 +554,7 @@ namespace CirclesBot
                         scores.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID), play, beatmapID));
                     }
 
-                    Pages pages = CreateScorePages(scores, $"Scores for {userToCheck} on {beatmapID}");
+                    Pages pages = CreateScorePages(scores, $"Scores for {userToCheck} on {scores[0].SongName} [{scores[0].DifficultyName}]");
 
                     PagesHandler.SendPages(sMsg.Channel, pages);
                 }
