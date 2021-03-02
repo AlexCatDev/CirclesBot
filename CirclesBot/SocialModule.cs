@@ -154,12 +154,25 @@ namespace CirclesBot
         private class DuelInstance
         {
             public ulong Fighter1, Fighter2;
+
+            public void Update(double delta)
+            {
+                
+            }
         }
 
         private List<DuelInstance> activeDuels = new List<DuelInstance>();
 
         public SocialModule()
         {
+            Program.OnSimulateWorld += (s, e) =>
+            {
+                for (int i = 0; i < activeDuels.Count; i++)
+                {
+                    activeDuels[i].Update(e);
+                }
+            };
+
             if (!Directory.Exists(DiscordProfileDirectory))
             {
                 Logger.Log("No profile directory found, creating one", LogLevel.Warning);

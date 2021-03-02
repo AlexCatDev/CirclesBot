@@ -38,72 +38,12 @@ namespace CirclesBot
 
         public TrashModule()
         {
-            AddCMD("Are you cool?", async (sMsg, buffer) => {
-                string text = "are you cool?";
-                var msg = await sMsg.Channel.SendMessageAsync(text);
-
-                msg.CreateReactionCollector((userID, emote, wasAdded) => {
-                    if (userID == sMsg.Author.Id)
-                    {
-                        string actiontext = wasAdded ? $"You are now cool!" : $"You are not cool anymore!";
-
-                        msg.ModifyAsync(a => a.Content = actiontext);
-                    }
-                    else
-                    {
-                        sMsg.Channel.SendMessageAsync("I didn't even ask you though?");
-                    }
-
-                }, new Emoji("😎"));
-            }, ">cool");
-
-            AddCMD("Convert decimal number to binary", (sMsg, buffer) =>
-            {
-                string binary = Convert.ToString(int.Parse(buffer.GetRemaining()), 2);
-                sMsg.Channel.SendMessageAsync($"**{binary}**");
-
-            }, ">d", ">decimaltobinary", ">dtb");
-
-            AddCMD("Convert binary number to decimal", (sMsg, buffer) =>
-            {
-                int val = Convert.ToInt32(buffer.GetRemaining(), 2);
-                sMsg.Channel.SendMessageAsync($"**{val}**");
-
-            }, ">b", ">binarytodecimal", ">btd");
-
-            AddCMD("Convert binary to chars", (sMsg, buffer) =>
-            {
-                var list = new List<byte>();
-                string binary = buffer.GetRemaining();
-
-                binary = binary.Replace("_", "");
-
-                for (int i = 0; i < binary.Length; i += 8)
-                {
-                    try
-                    {
-                        String t = binary.Substring(i, 8);
-
-                        list.Add(Convert.ToByte(t, 2));
-                    }
-                    catch { }
-                }
-
-                string output = System.Text.Encoding.ASCII.GetString(list.ToArray());
-
-                if (output.Contains("@everyone"))
-                    sMsg.Channel.SendMessageAsync($"no");
-                else
-                    sMsg.Channel.SendMessageAsync($"**{output}**");
-
-            }, ">char", ">chars", ">string");
-
             AddCMD("Convert hex to decimal", (sMsg, buffer) =>
             {
                 int val = Convert.ToInt32(buffer.GetRemaining(), 16);
                 sMsg.Channel.SendMessageAsync($"**{val}**");
 
-            }, ">h", ">hex");
+            }, ">hex");
 
             AddCMD("Make the bot say something", (sMsg, buffer) =>
             {

@@ -12,23 +12,6 @@ using Newtonsoft.Json;
 
 namespace CirclesBot
 {
-    class ReactionCollector
-    {
-        public ulong MessageID;
-        public Discord.Rest.RestUserMessage MessageHandle;
-
-        private IEmote[] emotes;
-        private Action<Discord.Rest.RestUserMessage, SocketUser, IEmote, bool> onReactionChanged;
-        private int timeout;
-
-        public ReactionCollector(Action<Discord.Rest.RestUserMessage, SocketUser, IEmote, bool> onReactionChanged, int timeout, params IEmote[] emotes)
-        {
-            this.emotes = emotes;
-            this.onReactionChanged = onReactionChanged;
-            this.timeout = timeout;
-        }
-    }
-
     /// <summary>
     /// TODO LIST
     /// 
@@ -78,6 +61,8 @@ namespace CirclesBot
 
         public static event EventHandler<double> OnSimulateWorld;
 
+        public static bool IgnoreMessages { get; private set; }
+
         public static int GetMemberCount()
         {
             int total = 0;
@@ -105,7 +90,8 @@ namespace CirclesBot
 
         public Program()
         {
-            AddCMD("Enable a command", (sMsg, buffer) => {
+            AddCMD("Enable a command", (sMsg, buffer) =>
+            {
                 string commandToEnable = buffer.GetRemaining();
 
                 if (sMsg.Author.Id == Config.BotOwnerID)
@@ -126,7 +112,8 @@ namespace CirclesBot
                 }
             }, ">enable");
 
-            AddCMD("Disable a command", (sMsg, buffer) => {
+            AddCMD("Disable a command", (sMsg, buffer) =>
+            {
                 string commandToDisable = buffer.GetRemaining();
 
                 if (commandToDisable == ">disable" || commandToDisable == ">enable")
@@ -180,7 +167,7 @@ namespace CirclesBot
                 embed.WithColor(Color.Blue);
                 sMsg.Channel.SendMessageAsync("", false, embed.Build());
             }, ">info");
-
+            /*
             //This is very ugly
             AddCMD("Shows this embed", (sMsg, buffer) =>
             {
@@ -231,6 +218,27 @@ namespace CirclesBot
                 commandPages.AddEmbed(eb.Build());
 
                 PagesHandler.SendPages(sMsg.Channel, commandPages);
+            }, ">help");
+            */
+
+            AddCMD("Shows this embed", (sMsg, buffer) =>
+            {
+                EmbedBuilder builder = new EmbedBuilder();
+                builder.WithAuthor("Available Commands", Client.CurrentUser.GetAvatarUrl());
+                int commandCounter = 1;
+                foreach (Module module in LoadedModules)
+                {
+                    builder.Description += $"```fix\n{module.Name}```";
+                    foreach (Command command in module.Commands)
+                    {
+                        builder.Description += $"`{commandCounter++}.` **{new CommandBuffer(command.Triggers).GetRemaining(", ")}** (*{command.Description}*)";
+                        if (command.IsEnabled == false)
+                            builder.Description += " -> `Has been disabled!`";
+
+                        builder.Description += "\n";
+                    }
+                }
+                sMsg.Channel.SendMessageAsync("", false, builder.Build());
             }, ">help");
         }
 
@@ -290,24 +298,24 @@ namespace CirclesBot
 
             Logger.Log($"Modules took {time} milliseconds to load");
 
-            bool isRunning = true;
-
             Client.MessageReceived += (s) =>
             {
                 if (s.Author.IsBot)
                     return Task.Delay(0);
 
+                Logger.Log(s.Channel.Name + "->" + s.Author.Username + ": " + s.Content);
+
                 //This is here so i can more easily run instances of the same bot
                 if (s.Content.ToLower() == ">stop" && s.Author.Id == Config.BotOwnerID)
                 {
-                    isRunning = false;
+                    IgnoreMessages = true;
 
                     s.Channel.SendMessageAsync("I will no longer handle commands");
                 }
 
                 if (s.Content.ToLower() == ">start" && s.Author.Id == Config.BotOwnerID)
                 {
-                    isRunning = true;
+                    IgnoreMessages = false;
 
                     s.Channel.SendMessageAsync("I will handle commands again");
                 }
@@ -319,15 +327,15 @@ namespace CirclesBot
                     return Task.Delay(0);
                 }
 
-                if (!isRunning)
+                if (IgnoreMessages)
                     return Task.Delay(0);
+
                 //1% chance
                 if (Utils.GetRandomChance(1))
                 {
                     s.Channel.SendMessageAsync(RandomQuirkyResponses[Utils.GetRandomNumber(0, RandomQuirkyResponses.Length - 1)]);
                 }
 
-                Logger.Log(s.Channel.Name + "->" + s.Author.Username + ": " + s.Content);
                 try
                 {
                     foreach (var module in LoadedModules)
