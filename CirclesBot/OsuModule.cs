@@ -32,9 +32,14 @@ namespace CirclesBot
             embedBuilder.Description += $"▸ **[Profile Link](https://osu.ppy.sh/users/{osuProfile.ID}/osu)**\n";
             embedBuilder.Description += $"▸ **Official Rank:** #{osuProfile.Rank}  ({osuProfile.Country}#{osuProfile.CountryRank})\n";
             embedBuilder.Description += $"▸ **Level:** {osuProfile.Level.ToString("F2")}\n▸ **Total PP:** {osuProfile.PP.ToString("F2")}\n";
-            embedBuilder.Description += $"▸ **Hit Accuracy:** {osuProfile.Accuracy.ToString("F2")}%\n▸ **Playcount:** {osuProfile.Playcount}";
+            embedBuilder.Description += $"▸ **Hit Accuracy:** {osuProfile.Accuracy.ToString("F2")}%\n";
+            embedBuilder.Description += $"▸ **Playcount:** {osuProfile.Playcount}\n";
+            embedBuilder.Description += $"▸ **Playtime:** {Math.Ceiling(TimeSpan.FromSeconds(osuProfile.TotalPlaytimeInSeconds).TotalHours)} Hours\n";
+            embedBuilder.Description += $"▸ **Ranked Score:** {(osuProfile.RankedScore / 1000000.0).ToString("F2")} Million\n";
+            embedBuilder.Description += $"▸ {Utils.GetEmoteForRankLetter("XH")} **{osuProfile.SSHCount}** {Utils.GetEmoteForRankLetter("X")} **{osuProfile.SSCount}** {Utils.GetEmoteForRankLetter("SH")} **{osuProfile.SHCount}** {Utils.GetEmoteForRankLetter("S")} **{osuProfile.SCount}** {Utils.GetEmoteForRankLetter("A")} **{osuProfile.ACount}**\n";
 
             embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
+            embedBuilder.WithFooter($"Joined osu! {Utils.FormatTime(DateTime.UtcNow - osuProfile.JoinDate)}");
             return embedBuilder;
         }
 
@@ -578,14 +583,12 @@ namespace CirclesBot
                 {
                     BanchoAPI.BanchoUser user = banchoAPI.GetUser(userToCheck).First();
 
-                    OsuProfile profile = new OsuProfile(user);
-
-                    EmbedBuilder embedBuilder = CreateProfileEmbed(profile);
+                    EmbedBuilder embedBuilder = CreateProfileEmbed(new OsuProfile(user));
 
                     embedBuilder.WithAuthor($"osu! Profile For {userToCheck}", BanchoAPI.GetFlagImageUrl(user.Country));
 
                     embedBuilder.WithThumbnailUrl(BanchoAPI.GetProfileImageUrl(user.ID.ToString()));
-                    embedBuilder.WithFooter($"On {profile.Server} Server");
+                    //embedBuilder.WithFooter($"On {profile.Server} Server");
                     sMsg.Channel.SendMessageAsync("", false, embedBuilder.Build());
                 }
                 catch (Exception ex)

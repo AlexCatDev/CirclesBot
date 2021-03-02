@@ -78,6 +78,12 @@ namespace CirclesBot
             activeReactionCollectors.Add(userMessage.Id, rCollector);
         }
 
+        public static void DeleteReactionCollector(this RestUserMessage userMessage)
+        {
+            if (activeReactionCollectors.ContainsKey(userMessage.Id))
+                activeReactionCollectors.Remove(userMessage.Id);
+        }
+
 
         //Credits: Stackoverflow person -> Martin Liversage
         public static IEnumerable<ReadOnlyMemory<char>> SplitInParts(this String s, Int32 partLength)

@@ -151,6 +151,13 @@ namespace CirclesBot
             }
         }
 
+        private class DuelInstance
+        {
+            public ulong Fighter1, Fighter2;
+        }
+
+        private List<DuelInstance> activeDuels = new List<DuelInstance>();
+
         public SocialModule()
         {
             if (!Directory.Exists(DiscordProfileDirectory))
@@ -158,6 +165,32 @@ namespace CirclesBot
                 Logger.Log("No profile directory found, creating one", LogLevel.Warning);
                 Directory.CreateDirectory(DiscordProfileDirectory);
             }
+
+            AddCMD("Duel someone", async (sMsg, buffer) =>
+            {
+                if(sMsg.MentionedUsers.Count > 0)
+                {
+                    var userToDuel = sMsg.MentionedUsers.First();
+
+                    if (activeDuels.Any((a) => a.Fighter1 == userToDuel.Id || a.Fighter1 == sMsg.Author.Id || a.Fighter2 == userToDuel.Id || a.Fighter2 == sMsg.Author.Id))
+                    {
+                        await sMsg.Channel.SendMessageAsync("You or that person is already in a duel");
+                        return;
+                    }
+
+                    var msg = await sMsg.Channel.SendMessageAsync($"{userToDuel.Mention} You have been challenged to a duel by {sMsg.Author.Mention}\nDo you want to accept?");
+                    msg.CreateReactionCollector((userID, emote, wasAdded) => {
+                        if (userID == userToDuel.Id)
+                        {
+                            sMsg.Channel.SendMessageAsync("You have accepted the duel!");
+                            activeDuels.Add(new DuelInstance() { Fighter1=sMsg.Author.Id, Fighter2 = userToDuel.Id });
+                            msg.DeleteReactionCollector();
+                        }
+                    
+                    }, new Emoji("⚔️"));
+                }
+
+            }, ">battle", ">duel", ">fight");
 
             AddCMD("View your inventory", (sMsg, buffer) =>
             {

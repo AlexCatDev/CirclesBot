@@ -95,6 +95,30 @@ namespace CirclesBot
 
             [JsonProperty("pp_raw")]
             public float PP;
+
+            [JsonProperty("ranked_score")]
+            public long RankedScore;
+
+            [JsonProperty("count_rank_ssh")]
+            public int SSHCount;
+
+            [JsonProperty("count_rank_ss")]
+            public int SSCount;
+
+            [JsonProperty("count_rank_sh")]
+            public int SHCount;
+
+            [JsonProperty("count_rank_s")]
+            public int SCount;
+
+            [JsonProperty("count_rank_a")]
+            public int ACount;
+
+            [JsonProperty("join_date")]
+            public DateTime JoinDate;
+
+            [JsonProperty("total_seconds_played")]
+            public int TotalPlaytimeInSeconds;
         }
 
         public class BanchoScore
