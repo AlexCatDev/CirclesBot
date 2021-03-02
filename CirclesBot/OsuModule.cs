@@ -89,7 +89,14 @@ namespace CirclesBot
 
                     embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
 
-                    embedBuilder.WithFooter($"Displaying {scores.IndexOf(firstScore) + 1}/{scores.Count} Scores");
+                    int currentScoreIndex = 0;
+
+                    if (isLastScore)
+                        currentScoreIndex = scores.IndexOf(score) + 1;
+                    else
+                        currentScoreIndex = scores.IndexOf(score);
+
+                    embedBuilder.WithFooter($"Displaying {currentScoreIndex}/{scores.Count} Scores");
 
                     pages.AddEmbed(embedBuilder.Build());
                     embedBuilder = new EmbedBuilder();
@@ -100,6 +107,7 @@ namespace CirclesBot
                 if (tempDesc.Length + description.Length >= 2048)
                 {
                     CompileEmbed();
+                    description += tempDesc;
                 }
                 else
                 {
@@ -364,7 +372,9 @@ namespace CirclesBot
 
                     RememberScores(sMsg.Channel.Id, scores);
 
-                    Pages pages = CreateScorePages(scores, $"Top osu! scores for {userToCheck}");
+                    string recentText = showRecent ? "Recent " : "";
+
+                    Pages pages = CreateScorePages(scores, $"{recentText}Top osu! Scores For {userToCheck}");
 
                     PagesHandler.SendPages(sMsg.Channel, pages);
                 }
@@ -408,31 +418,20 @@ namespace CirclesBot
                 }
                 else
                 {
-                    //string mds = buffer.GetRemaining().Split(;
+                    if (channelToScores.TryGetValue(sMsg.Channel.Id, out List<OsuScore> scores) == false)
+                    {
+                        sMsg.Channel.SendMessageAsync("No beatmap found in conversation");
+                        return;
+                    }
+
                     if (indexToCheck == null)
                     {
-                        if (!channelToScores.TryGetValue(sMsg.Channel.Id, out List<OsuScore> scores))
-                        {
-                            sMsg.Channel.SendMessageAsync("No beatmap found in conversation");
-                            return;
-                        }
-                        else
-                        {
-                            beatmapID = scores[0].BeatmapID;
-                        }
+                        beatmapID = scores[0].BeatmapID;
                     }
                     else
                     {
-                        if (!channelToScores.TryGetValue(sMsg.Channel.Id, out List<OsuScore> scores))
-                        {
-                            sMsg.Channel.SendMessageAsync("No beatmap top found in conversation");
-                            return;
-                        }
-                        else
-                        {
-                            indexToCheck = Math.Max(indexToCheck.Value - 1, 0);
-                            beatmapID = scores[Math.Min(scores.Count, indexToCheck.Value)].BeatmapID;
-                        }
+                        indexToCheck = Math.Max(indexToCheck.Value - 1, 0);
+                        beatmapID = scores[Math.Min(scores.Count, indexToCheck.Value)].BeatmapID;
                     }
                 }
 

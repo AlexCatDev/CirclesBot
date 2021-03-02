@@ -38,6 +38,25 @@ namespace CirclesBot
 
         public TrashModule()
         {
+            AddCMD("Are you cool?", async (sMsg, buffer) => {
+                string text = "are you cool?";
+                var msg = await sMsg.Channel.SendMessageAsync(text);
+
+                msg.CreateReactionCollector((userID, emote, wasAdded) => {
+                    if (userID == sMsg.Author.Id)
+                    {
+                        string actiontext = wasAdded ? $"You are now cool!" : $"You are not cool anymore!";
+
+                        msg.ModifyAsync(a => a.Content = actiontext);
+                    }
+                    else
+                    {
+                        sMsg.Channel.SendMessageAsync("I didn't even ask you though?");
+                    }
+
+                }, new Emoji("😎"));
+            }, ">cool");
+
             AddCMD("Convert decimal number to binary", (sMsg, buffer) =>
             {
                 string binary = Convert.ToString(int.Parse(buffer.GetRemaining()), 2);
