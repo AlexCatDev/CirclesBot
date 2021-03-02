@@ -377,18 +377,12 @@ namespace CirclesBot
 
             Client.ReactionAdded += async (s, e, x) =>
             {
-                if (x.UserId != Client.CurrentUser.Id)
-                {
-                    PagesHandler.Handle(x.MessageId, x);
-                }
+                
             };
 
             Client.ReactionRemoved += async (s, e, x) =>
             {
-                if (x.UserId != Client.CurrentUser.Id)
-                {
-                    PagesHandler.Handle(x.MessageId, x);
-                }
+                
             };
 
             Client.GuildAvailable += (s) =>
