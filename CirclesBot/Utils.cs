@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -87,6 +88,35 @@ namespace CirclesBot
                 return result;
             else
                 return 0;
+        }
+
+        public static string PrettifyName(string name, string seperator = "_")
+        {
+            List<string> nS = name.Split(seperator).ToList();
+            for (int j = 0; j < nS.Count; j++)
+            {
+                StringBuilder builder = new StringBuilder(nS[j]);
+                for (int i = 0; i < builder.Length; i++)
+                {
+                    if (char.IsLetter(builder[i]))
+                    {
+                        builder[i] = char.ToUpper(builder[i]);
+                        nS[j] = builder.ToString();
+                        break;
+                    }
+                }
+            }
+
+            StringBuilder final = new StringBuilder();
+            for (int i = 0; i < nS.Count; i++)
+            {
+                final.Append(nS[i]);
+
+                bool isLast = i == nS.Count - 1;
+                if (isLast == false)
+                    final.Append(" ");
+            }
+            return final.ToString();
         }
 
         public static double Benchmark(Action a)
