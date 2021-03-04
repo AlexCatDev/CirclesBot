@@ -583,7 +583,7 @@ namespace CirclesBot
 
             AddCMD("Shows your osu profile or someone elses", (sMsg, buffer) =>
             {
-                OsuGamemode mode = Enum.Parse<OsuGamemode>(buffer.TriggerText.Remove(0, 1), ignoreCase: true);
+                Enum.TryParse<OsuGamemode>(buffer.TriggerText.Remove(0, 1), ignoreCase: true, out OsuGamemode mode);
 
                 bool isRipple = buffer.HasParameter("-ripple");
 
@@ -594,7 +594,15 @@ namespace CirclesBot
 
                 try
                 {
-                    BanchoAPI.BanchoUser user = banchoAPI.GetUser(userToCheck, mode).First();
+                    var users = banchoAPI.GetUser(userToCheck, mode);
+
+                    if(users.Count < 1)
+                    {
+                        sMsg.Channel.SendMessageAsync("This user doesn't exist.");
+                        return;
+                    }
+
+                    var user = users.First();
 
                     EmbedBuilder embedBuilder = CreateProfileEmbed(new OsuProfile(user));
 
