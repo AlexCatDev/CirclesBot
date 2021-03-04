@@ -254,7 +254,7 @@ namespace CirclesBot
 
             Logger.Log("Loading Modules", LogLevel.Info);
 
-            int time = Utils.Benchmark(() =>
+            double time = Utils.Benchmark(() =>
             {
                 foreach (var type in System.Reflection.Assembly.GetExecutingAssembly().GetTypes())
                 {

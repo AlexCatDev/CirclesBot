@@ -89,13 +89,13 @@ namespace CirclesBot
                 return 0;
         }
 
-        public static int Benchmark(Action a)
+        public static double Benchmark(Action a)
         {
             Stopwatch sw = Stopwatch.StartNew();
             a?.Invoke();
             sw.Stop();
             double time = ((double)sw.ElapsedTicks / Stopwatch.Frequency) * 1000.0;
-            return (int)time;
+            return Math.Round(time, 2);
         }
 
         //Credits: https://github.com/raresica1234

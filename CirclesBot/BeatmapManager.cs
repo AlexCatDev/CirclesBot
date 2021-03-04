@@ -36,7 +36,7 @@ namespace CirclesBot
                     //If no file, download beatmap from osu.ppy.sh
                     using (WebClient wc = new WebClient())
                     {
-                        int time = 0;
+                        double time = 0;
 
                         Logger.Log($"Downloading beatmap: {id}");
                         string beatmap = "";

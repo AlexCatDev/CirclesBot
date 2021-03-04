@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -124,26 +125,28 @@ namespace CirclesBot
 
         public const string DiscordProfileDirectory = "./Profiles";
 
-        public object profileLock = new object();
+        private ConcurrentDictionary<ulong, DiscordProfile> profileCache = new ConcurrentDictionary<ulong, DiscordProfile>();
 
         public void GetProfile(ulong discordID, Action<DiscordProfile> modifyAction)
         {
-            lock (profileLock)
-            {
-                DiscordProfile profile = null;
+            DiscordProfile profile = null;
 
+            //if not in cache
+            if (profileCache.TryGetValue(discordID, out profile) == false)
+            {
+                //if not in cache, attempt to read from disk
                 if (File.Exists($"{DiscordProfileDirectory}/{discordID}"))
                 {
                     profile = JsonConvert.DeserializeObject<DiscordProfile>(File.ReadAllText($"{DiscordProfileDirectory}/{discordID}"));
                 }
                 else
                 {
+                    //if not on disk create new
                     profile = new DiscordProfile();
                 }
-
-                modifyAction?.Invoke(profile);
-                File.WriteAllText($"{DiscordProfileDirectory}/{discordID}", JsonConvert.SerializeObject(profile));
             }
+            modifyAction?.Invoke(profile);
+            profileCache.TryAdd(discordID, profile);
         }
 
         private class DuelInstance
@@ -158,10 +161,35 @@ namespace CirclesBot
 
         private List<DuelInstance> activeDuels = new List<DuelInstance>();
 
+        private double profileSaveTimer = 0;
+
+        public Task EnqueueProfileSave()
+        {
+            return Task.Factory.StartNew(() =>
+            {
+                double i = Utils.Benchmark(() =>
+                {
+                    foreach (var profile in profileCache)
+                    {
+                        File.WriteAllText($"{DiscordProfileDirectory}/{profile.Key}", JsonConvert.SerializeObject(profile));
+                    }
+                });
+
+                Logger.Log($"saving {profileCache.Count} profiles took: {i} milliseconds", LogLevel.Info);
+            });
+        }
+
         public SocialModule()
         {
             Program.OnSimulateWorld += (s, e) =>
             {
+                profileSaveTimer += e;
+                if (profileSaveTimer >= 10.0)
+                {
+                    EnqueueProfileSave();
+                    profileSaveTimer = 0;
+                }
+
                 for (int i = 0; i < activeDuels.Count; i++)
                 {
                     activeDuels[i].Update(e);
@@ -308,10 +336,7 @@ namespace CirclesBot
 
                 if (sMsg.Author.Id == Program.Config.BotOwnerID)
                 {
-                    lock (profileLock)
-                    {
-                        File.WriteAllText($"{DiscordProfileDirectory}/{userToCheck.Id}", JsonConvert.SerializeObject(new DiscordProfile()));
-                    }
+                    File.WriteAllText($"{DiscordProfileDirectory}/{userToCheck.Id}", JsonConvert.SerializeObject(new DiscordProfile()));
                     sMsg.Channel.SendMessageAsync($"Wiped **{userToCheck.Username}** :ok_hand:");
                 }
                 else

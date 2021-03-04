@@ -512,7 +512,7 @@ namespace CirclesBot
 
                 bool isRipple = buffer.HasParameter("-ripple");
 
-                int? indexToCheck = (int?)buffer.GetInt();
+                int? indexToCheck = buffer.GetInt();
 
                 ulong beatmapID = 0;
 
@@ -584,7 +584,7 @@ namespace CirclesBot
                 }
             }, ">c", ">compare", ",");
 
-            AddCMD("Shows your osu profile or someone elses", (sMsg, buffer) =>
+            AddCMD("Shows your osu profile or someone elses in the respected gamemode", (sMsg, buffer) =>
             {
                 Enum.TryParse<OsuGamemode>(buffer.TriggerText.Remove(0, 1), ignoreCase: true, out OsuGamemode mode);
 
