@@ -9,10 +9,12 @@ namespace CirclesBot
     public struct CommandBuffer
     {
         private List<string> buffer;
+        public string TriggerText { get; private set; }
 
-        public CommandBuffer(List<string> input)
+        public CommandBuffer(List<string> input, string triggerText)
         {
             buffer = input;
+            TriggerText = triggerText;
         }
 
         public void Take(Func<string, bool> pred)

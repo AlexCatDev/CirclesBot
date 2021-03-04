@@ -170,24 +170,51 @@ namespace CirclesBot
 
             AddCMD("Shows this embed", (sMsg, buffer) =>
             {
+                Pages commandPages = new Pages();
+
                 EmbedBuilder builder = new EmbedBuilder();
-                builder.WithAuthor("Available Commands", Client.CurrentUser.GetAvatarUrl());
                 int commandCounter = 1;
+                string description = "";
+
+                void CompileEmbed()
+                {
+                    builder.WithAuthor("Available Commands", Client.CurrentUser.GetAvatarUrl());
+                    builder.WithFooter($"{description.Length} chars");
+                    builder.WithDescription(description);
+                    commandPages.AddEmbed(builder.Build());
+                    builder = new EmbedBuilder();
+                    description = "";
+                }
+
                 foreach (Module module in LoadedModules)
                 {
-                    builder.Description += $"```fix\n{module.Name}```";
+                    string tempDesc = "";
+                    tempDesc += $"```fix\n{module.Name}```";
                     foreach (Command command in module.Commands)
                     {
-                        builder.Description += $"`{commandCounter++}.` **{new CommandBuffer(command.Triggers).GetRemaining(", ")}** (*{command.Description}*)";
+                        tempDesc += $"`{commandCounter++}.` **{new CommandBuffer(command.Triggers, "").GetRemaining(", ")}** (*{command.Description}*)";
                         if (command.IsEnabled == false)
-                            builder.Description += " -> `Has been disabled!`";
+                            tempDesc += " -> `Has been disabled!`";
 
-                        builder.Description += "\n";
+                        tempDesc += "\n";
+
+                        if(description.Length + tempDesc.Length < 2048)
+                        {
+                            description += tempDesc;
+                            tempDesc = "";
+                        }
+                        else
+                        {
+                            CompileEmbed();
+                            description += tempDesc;
+                        }
                     }
                 }
 
-                builder.WithFooter($"{builder.Description.Length} chars");
-                sMsg.Channel.SendMessageAsync("", false, builder.Build());
+                if (description.Length > 0)
+                    CompileEmbed();
+
+                sMsg.Channel.SendPages(commandPages);
             }, ">help");
         }
 

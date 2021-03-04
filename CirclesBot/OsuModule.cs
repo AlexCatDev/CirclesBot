@@ -173,7 +173,7 @@ namespace CirclesBot
 
         public OsuModule()
         {
-            AddCMD("Enabled the use of '.' in place of >rs", (sMsg, buffer) =>
+            AddCMD("Enable the use of '.' in place of >rs", (sMsg, buffer) =>
             {
                 Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
                 {
@@ -183,7 +183,7 @@ namespace CirclesBot
                 sMsg.Channel.SendMessageAsync("You can now use lazy commands.");
             }, ">iamlazy");
 
-            AddCMD("Enabled the use of ',' in place of >c", (sMsg, buffer) =>
+            AddCMD("Enable the use of ',' in place of >c", (sMsg, buffer) =>
             {
                 Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
                 {
@@ -572,6 +572,8 @@ namespace CirclesBot
 
             AddCMD("Shows your osu profile or someone elses", (sMsg, buffer) =>
             {
+                OsuGamemode mode = Enum.Parse<OsuGamemode>(buffer.TriggerText.Remove(0, 1), ignoreCase: true);
+
                 bool isRipple = buffer.HasParameter("-ripple");
 
                 string userToCheck = DecipherOsuUsername(sMsg, buffer);
@@ -581,11 +583,11 @@ namespace CirclesBot
 
                 try
                 {
-                    BanchoAPI.BanchoUser user = banchoAPI.GetUser(userToCheck).First();
+                    BanchoAPI.BanchoUser user = banchoAPI.GetUser(userToCheck, mode).First();
 
                     EmbedBuilder embedBuilder = CreateProfileEmbed(new OsuProfile(user));
 
-                    embedBuilder.WithAuthor($"osu! Profile For {userToCheck}", BanchoAPI.GetFlagImageUrl(user.Country));
+                    embedBuilder.WithAuthor($"{mode} Profile For {userToCheck}", BanchoAPI.GetFlagImageUrl(user.Country));
 
                     embedBuilder.WithThumbnailUrl(BanchoAPI.GetProfileImageUrl(user.ID.ToString()));
                     //embedBuilder.WithFooter($"On {profile.Server} Server");
@@ -596,7 +598,7 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">osu");
+            }, ">osu", ">mania", ">catch", ">ctb", ">taiko");
 
             AddCMD("Links your osu! account to the bot", (sMsg, buffer) =>
             {

@@ -5,6 +5,15 @@ using System.Net;
 
 namespace CirclesBot
 {
+    public enum OsuGamemode
+    {
+        Standard = 0,
+        Taiko = 1,
+        Catch = 2,
+        CTB = 2,
+        Mania = 3
+    }
+
     public class BanchoAPI
     {
         public static string GetProfileImageUrl(string userID) => $"https://a.ppy.sh/{userID}?{Utils.GetRandomNumber(1, Int32.MaxValue - 1)}.jpeg";
@@ -21,51 +30,41 @@ namespace CirclesBot
             this.apiKey = apiKey;
         }
 
-        public List<BanchoRecentScore> GetRecentPlays(string username, int limit = 1)
+        public List<BanchoRecentScore> GetRecentPlays(string username, int limit = 1, OsuGamemode mode = OsuGamemode.Standard)
         {
             using (WebClient wc = new WebClient())
             {
                 TotalAPICalls++;
-                string json = wc.DownloadString($"https://osu.ppy.sh/api/get_user_recent?k={apiKey}&u={username}&m=0&limit={limit}&type=string");
+                string json = wc.DownloadString($"https://osu.ppy.sh/api/get_user_recent?k={apiKey}&u={username}&m={(int)mode}&limit={limit}&type=string");
                 return JsonConvert.DeserializeObject<List<BanchoRecentScore>>(json);
             }
         }
 
-        public List<BanchoUser> GetUser(string username)
+        public List<BanchoUser> GetUser(string username, OsuGamemode mode = OsuGamemode.Standard)
         {
             using (WebClient wc = new WebClient())
             {
                 TotalAPICalls++;
-                string json = wc.DownloadString($"https://osu.ppy.sh/api/get_user?k={apiKey}&u={username}&m=0&type=string");
+                string json = wc.DownloadString($"https://osu.ppy.sh/api/get_user?k={apiKey}&u={username}&m={(int)mode}&type=string");
                 return JsonConvert.DeserializeObject<List<BanchoUser>>(json);
             }
         }
 
-        public List<BanchoBestScore> GetBestPlays(string username, int limit = 100)
+        public List<BanchoBestScore> GetBestPlays(string username, int limit = 100, OsuGamemode mode = OsuGamemode.Standard)
         {
             using (WebClient wc = new WebClient())
             {
                 TotalAPICalls++;
-                string json = wc.DownloadString($"https://osu.ppy.sh/api/get_user_best?k={apiKey}&u={username}&m=0&limit={limit}&type=string");
+                string json = wc.DownloadString($"https://osu.ppy.sh/api/get_user_best?k={apiKey}&u={username}&m={(int)mode}&limit={limit}&type=string");
                 return JsonConvert.DeserializeObject<List<BanchoBestScore>>(json);
             }
         }
 
-        public List<BanchoBestScore> GetBestPlays(int id, int limit = 100)
+        public List<BanchoScore> GetScores(string username, ulong beatmapID, int limit = 10, OsuGamemode mode = OsuGamemode.Standard)
         {
             using (WebClient wc = new WebClient())
             {
-                TotalAPICalls++;
-                string json = wc.DownloadString($"https://osu.ppy.sh/api/get_user_best?k={apiKey}&u={id}&m=0&limit={limit}&type=id");
-                return JsonConvert.DeserializeObject<List<BanchoBestScore>>(json);
-            }
-        }
-
-        public List<BanchoScore> GetScores(string username, ulong beatmapID, int limit = 10)
-        {
-            using (WebClient wc = new WebClient())
-            {
-                string json = wc.DownloadString($"https://osu.ppy.sh/api/get_scores?k={apiKey}&b={beatmapID}&u={username}&m=0&limit={limit}&type=string");
+                string json = wc.DownloadString($"https://osu.ppy.sh/api/get_scores?k={apiKey}&b={beatmapID}&u={username}&m={(int)mode}&limit={limit}&type=string");
                 return JsonConvert.DeserializeObject<List<BanchoScore>>(json);
             }
         }

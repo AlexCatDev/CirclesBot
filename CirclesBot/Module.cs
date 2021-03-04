@@ -38,7 +38,7 @@ namespace CirclesBot
                 args.RemoveAt(0);
                 if (IsEnabled)
                 {
-                    onActivate?.Invoke(userMsg, new CommandBuffer(args));
+                    onActivate?.Invoke(userMsg, new CommandBuffer(args, trigger));
                     Program.TotalCommandsHandled++;
                 }
                 else
