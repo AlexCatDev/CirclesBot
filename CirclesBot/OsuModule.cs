@@ -26,16 +26,19 @@ namespace CirclesBot
 
         private BanchoAPI banchoAPI = new BanchoAPI(Program.Config.OSU_API_KEY);
 
-        private EmbedBuilder CreateProfileEmbed(OsuProfile osuProfile)
+        private EmbedBuilder CreateProfileEmbed(OsuProfile osuProfile, List<BanchoAPI.BanchoBestScore> topPlays)
         {
+            float ppStart = topPlays[0].PP;
+            float ppEnd = topPlays.Last().PP;
+
             EmbedBuilder embedBuilder = new EmbedBuilder();
             embedBuilder.Description += $"▸ **[Profile Link](https://osu.ppy.sh/users/{osuProfile.ID}/osu)**\n";
-            embedBuilder.Description += $"▸ **Official Rank:** #{osuProfile.Rank}  ({osuProfile.Country}#{osuProfile.CountryRank})\n";
-            embedBuilder.Description += $"▸ **Level:** {osuProfile.Level.ToString("F2")}\n▸ **Total PP:** {osuProfile.PP.ToString("F2")}\n";
-            embedBuilder.Description += $"▸ **Hit Accuracy:** {osuProfile.Accuracy.ToString("F2")}%\n";
-            embedBuilder.Description += $"▸ **Playcount:** {osuProfile.Playcount}\n";
-            embedBuilder.Description += $"▸ **Playtime:** {Math.Ceiling(TimeSpan.FromSeconds(osuProfile.TotalPlaytimeInSeconds).TotalHours)} Hours\n";
-            embedBuilder.Description += $"▸ **Ranked Score:** {(osuProfile.RankedScore / 1000000.0).ToString("F2")} Million\n";
+            embedBuilder.Description += $"▸ **Rank:** #{osuProfile.Rank}  ({osuProfile.Country}#{osuProfile.CountryRank})\n";
+            embedBuilder.Description += $"▸ **Level:** {osuProfile.Level:F2}\n";
+            embedBuilder.Description += $"▸ **PP:** {osuProfile.PP:F2} ({ppStart} - {ppEnd})\n";
+            embedBuilder.Description += $"▸ **Accuracy:** {osuProfile.Accuracy.ToString("F2")}%\n";
+            embedBuilder.Description += $"▸ **Playcount:** {osuProfile.Playcount} ({Math.Ceiling(TimeSpan.FromSeconds(osuProfile.TotalPlaytimeInSeconds).TotalHours)} Hours)\n";
+            embedBuilder.Description += $"▸ **Ranked Score:** {osuProfile.RankedScore / 1000000.0:F2} Million\n";
             embedBuilder.Description += $"▸ {Utils.GetEmoteForRankLetter("XH")} **{osuProfile.SSHCount}** {Utils.GetEmoteForRankLetter("X")} **{osuProfile.SSCount}** {Utils.GetEmoteForRankLetter("SH")} **{osuProfile.SHCount}** {Utils.GetEmoteForRankLetter("S")} **{osuProfile.SCount}** {Utils.GetEmoteForRankLetter("A")} **{osuProfile.ACount}**\n";
 
             embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
@@ -603,13 +606,15 @@ namespace CirclesBot
                     }
 
                     var user = users.First();
+                    var topPlays = banchoAPI.GetBestPlays(userToCheck, 100, mode);
+                    topPlays.Sort((x, y) => x.PP.CompareTo(y.PP));
 
-                    EmbedBuilder embedBuilder = CreateProfileEmbed(new OsuProfile(user));
+                    EmbedBuilder embedBuilder = CreateProfileEmbed(new OsuProfile(user), topPlays);
 
                     embedBuilder.WithAuthor($"{mode} Profile For {userToCheck}", BanchoAPI.GetFlagImageUrl(user.Country));
 
                     embedBuilder.WithThumbnailUrl(BanchoAPI.GetProfileImageUrl(user.ID.ToString()));
-                    //embedBuilder.WithFooter($"On {profile.Server} Server");
+
                     sMsg.Channel.SendMessageAsync("", false, embedBuilder.Build());
                 }
                 catch (Exception ex)
@@ -621,19 +626,23 @@ namespace CirclesBot
 
             AddCMD("Links your osu! account to the bot", (sMsg, buffer) =>
             {
-                string[] user = sMsg.Content.Split(' ');
-                if (user.Length > 1)
-                {
-                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
-                    {
-                        profile.OsuUsername = user[1];
-                    });
+                string username = buffer.GetRemaining();
+                var users = banchoAPI.GetUser(username, OsuGamemode.Standard);
 
-                    sMsg.Channel.SendMessageAsync("Your osu user has been set to: " + user[1]);
+                if(users.Count < 1)
+                {
+                    sMsg.Channel.SendMessageAsync("This user doesn't exist");
                 }
                 else
                 {
-                    sMsg.Channel.SendMessageAsync("Atleast type something like... i dunno? Your fucking **osu!** username?");
+                    var user = users.First();
+                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
+                    {
+                        profile.OsuUsername = username;
+                        profile.CountryFlag = user.Country;
+                    });
+
+                    sMsg.Channel.SendMessageAsync("Your osu user has been set to: " + username);
                 }
             }, ">osuset", ">set");
         }

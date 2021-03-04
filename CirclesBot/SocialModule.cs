@@ -74,13 +74,6 @@ namespace CirclesBot
 
     public class DiscordProfile
     {
-        public int HPLevel = 10;
-        public int HP = 10;
-        public int AttackLevel = 1;
-        public int StrengthLevel = 1;
-        public int DefenceLevel = 1;
-        public List<Item> EquipedItems = new List<Item>();
-
         public ulong XP = 0;
         public ulong Money = 0;
 
@@ -89,6 +82,8 @@ namespace CirclesBot
         public List<Item> Inventory = new List<Item>();
         public List<Badge> Badges = new List<Badge>();
         public string OsuUsername = "";
+        public string CountryFlag = "";
+        public OsuGamemode DefaultGamemode = OsuGamemode.Standard;
         public bool IsLazy;
         public uint PreferredColor;
 
