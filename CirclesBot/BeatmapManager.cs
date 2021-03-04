@@ -21,18 +21,21 @@ namespace CirclesBot
             }
         }
 
-        public static string GetBeatmap(ulong id)
+        public static string GetBeatmap(ulong id, bool reDownload = false)
         {
             lock (lockObject)
             {
                 //Load map from disk (if available)
-                if (File.Exists($"{MapDirectory}/{id}"))
+                if (File.Exists($"{MapDirectory}/{id}") && reDownload == false)
                 {
                     string bm = File.ReadAllText($"{MapDirectory}/{id}");
                     return bm;
                 }
                 else
                 {
+                    if (reDownload == true)
+                        Logger.Log("Doing a map redownload!", LogLevel.Info);
+
                     //If no file, download beatmap from osu.ppy.sh
                     using (WebClient wc = new WebClient())
                     {

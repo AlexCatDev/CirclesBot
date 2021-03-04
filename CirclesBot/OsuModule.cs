@@ -645,6 +645,52 @@ namespace CirclesBot
                     sMsg.Channel.SendMessageAsync("Your osu user has been set to: " + username);
                 }
             }, ">osuset", ">set");
+
+            AddCMD("Use this command if a unranked map is not upto date with bot", (sMsg, buffer) =>
+            {
+                int? indexToCheck = buffer.GetInt();
+
+                string beatmap = buffer.GetParameter("https://osu.ppy.sh/beatmapsets/");
+                ulong beatmapSetID = 0;
+                ulong beatmapID = 0;
+
+                if (string.IsNullOrEmpty(beatmap) == false)
+                {
+                    try
+                    {
+                        beatmapSetID = ulong.Parse(beatmap.Split("#osu/")[0]);
+                        beatmapID = ulong.Parse(beatmap.Split("#osu/")[1]);
+                    }
+                    catch
+                    {
+                        sMsg.Channel.SendMessageAsync("Error parsing beatmap url.");
+                        return;
+                    }
+                }
+                else
+                {
+                    if (channelToScores.TryGetValue(sMsg.Channel.Id, out List<OsuScore> scores) == false)
+                    {
+                        sMsg.Channel.SendMessageAsync("No beatmap found in conversation");
+                        return;
+                    }
+
+                    if (indexToCheck == null)
+                    {
+                        beatmapID = scores[0].BeatmapID;
+                    }
+                    else
+                    {
+                        indexToCheck = Math.Max(indexToCheck.Value - 1, 0);
+                        beatmapID = scores[Math.Min(scores.Count, indexToCheck.Value)].BeatmapID;
+                    }
+                }
+
+                sMsg.Channel.SendMessageAsync($"Refreshing {beatmapID}!");
+                BeatmapManager.GetBeatmap(beatmapID, true);
+                sMsg.Channel.SendMessageAsync("Done!");
+
+            }, ">refresh", ">rdl", ">f5", ">re");
         }
     }
 }

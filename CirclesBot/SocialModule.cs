@@ -171,7 +171,7 @@ namespace CirclesBot
                 {
                     foreach (var profile in profileCache)
                     {
-                        File.WriteAllText($"{DiscordProfileDirectory}/{profile.Key}", JsonConvert.SerializeObject(profile));
+                        File.WriteAllText($"{DiscordProfileDirectory}/{profile.Key}", JsonConvert.SerializeObject(profile.Value));
                     }
                 });
 
