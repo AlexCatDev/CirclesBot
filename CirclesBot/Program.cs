@@ -137,6 +137,11 @@ namespace CirclesBot
                 }
             }, ">disable");
 
+            AddCMD("Sends the url for the source code hosted on github", (sMsg, buffer) =>
+            {
+                sMsg.Channel.SendMessageAsync($"**Here is the source code for the bot:** {Config.GithubURL}");
+            }, ">github", ">source", ">code");
+
             AddCMD("Shows bot info", (sMsg, buffer) =>
             {
                 var runtimeVer = RuntimeInformation.FrameworkDescription;

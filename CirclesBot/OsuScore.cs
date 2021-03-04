@@ -6,8 +6,6 @@ namespace CirclesBot
     {
         public int Placement = -1;
 
-        public string Server { get; private set; }
-
         public DateTime Date { get; private set; }
 
         public int Count300 { get; private set; }
@@ -53,8 +51,6 @@ namespace CirclesBot
 
         public OsuScore(string beatmap, BanchoAPI.BanchoScore banchoPlay, ulong beatmapID)
         {
-            Server = "Bancho";
-
             UserID = banchoPlay.UserID;
             Date = banchoPlay.DateOfPlay;
             Count300 = banchoPlay.Count300;
@@ -77,8 +73,6 @@ namespace CirclesBot
 
         public OsuScore(string beatmap, BanchoAPI.BanchoBestScore banchoPlay)
         {
-            Server = "Bancho";
-
             UserID = banchoPlay.UserID;
             Date = banchoPlay.DateOfPlay;
             Count300 = banchoPlay.Count300;
@@ -103,8 +97,6 @@ namespace CirclesBot
 
         public OsuScore(string beatmap, BanchoAPI.BanchoRecentScore banchoPlay)
         {
-            Server = "Bancho";
-
             UserID = banchoPlay.UserID;
             Date = banchoPlay.DateOfPlay;
             Count300 = banchoPlay.Count300;

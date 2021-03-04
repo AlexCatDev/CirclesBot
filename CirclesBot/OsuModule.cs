@@ -82,7 +82,7 @@ namespace CirclesBot
                 if (score.IsPass == false)
                     tempDesc += $"▸ **Map Completion:** {score.CompletionPercentage.ToString("F2")}%\n";
 
-                tempDesc += $"▸ Score set {Utils.FormatTime(DateTime.UtcNow - score.Date)} On {score.Server}\n";
+                tempDesc += $"▸ Score set {Utils.FormatTime(DateTime.UtcNow - score.Date)}\n";
 
                 void CompileEmbed()
                 {
@@ -207,6 +207,17 @@ namespace CirclesBot
                         return;
                 }
 
+                OsuGamemode mode = OsuGamemode.Standard;
+
+                if (buffer.HasParameter("-mania"))
+                    mode = OsuGamemode.Mania;
+                else if (buffer.HasParameter("-taiko"))
+                    mode = OsuGamemode.Taiko;
+                else if (buffer.HasParameter("-catch"))
+                    mode = OsuGamemode.Catch;
+                else if (buffer.HasParameter("-ctb"))
+                    mode = OsuGamemode.Catch;
+
                 bool showList = buffer.HasParameter("-l");
                 string userToCheck = DecipherOsuUsername(sMsg, buffer);
 
@@ -217,7 +228,7 @@ namespace CirclesBot
 
                 try
                 {
-                    List<BanchoAPI.BanchoRecentScore> recentUserPlays = banchoAPI.GetRecentPlays(userToCheck, showList ? 10 : 1);
+                    List<BanchoAPI.BanchoRecentScore> recentUserPlays = banchoAPI.GetRecentPlays(userToCheck, showList ? 10 : 1, mode);
 
                     if (recentUserPlays.Count == 0)
                     {
@@ -235,7 +246,7 @@ namespace CirclesBot
 
                     RememberScores(sMsg.Channel.Id, scores);
 
-                    Pages pages = CreateScorePages(scores, $"Recent plays for {userToCheck}");
+                    Pages pages = CreateScorePages(scores, $"Recent {mode} plays for {userToCheck}");
 
                     PagesHandler.SendPages(sMsg.Channel, pages);
                 }
