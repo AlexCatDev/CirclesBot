@@ -274,8 +274,12 @@ namespace CirclesBot
                     {
                         try
                         {
-                            //Console.WriteLine($"{field.Name}");
-                            builder.Description += $"`{field.Name}:` **{field.GetValue(profile)?.ToString() ?? "null"}**\n";
+                            string value = field.GetValue(profile)?.ToString();
+
+                            if (string.IsNullOrEmpty(value))
+                                value = "null";
+
+                            builder.Description += $"`{field.Name}:` **{value}**\n";
                         }
                         catch (Exception e) { /*Console.WriteLine(e.Message);*/ }
                     }
@@ -285,7 +289,12 @@ namespace CirclesBot
                         try
                         {
                             //Console.WriteLine($"{field.Name}");
-                            builder.Description += $"`{property.Name}:` **{property.GetValue(profile)?.ToString() ?? "null"}**\n";
+                            string value = property.GetValue(profile)?.ToString();
+
+                            if (string.IsNullOrEmpty(value))
+                                value = "null";
+
+                            builder.Description += $"`{property.Name}:` **{value}**\n";
                         }
                         catch (Exception e) { /*Console.WriteLine(e.Message);*/ }
                     }

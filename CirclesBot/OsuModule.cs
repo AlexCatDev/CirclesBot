@@ -3,6 +3,7 @@ using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace CirclesBot
 {
@@ -322,6 +323,8 @@ namespace CirclesBot
 
                 bool justCheckPPCountPlays = buffer.HasParameter("-g");
 
+                bool sortByAcc = buffer.HasParameter("-acc");
+
                 double? ppToCheck = buffer.GetDouble();
 
                 string userToCheck = DecipherOsuUsername(sMsg, buffer);
@@ -389,9 +392,13 @@ namespace CirclesBot
                         scores.Add(score);
                     }
 
+                    if (sortByAcc)
+                        scores.Sort((x, y) => y.Accuracy.CompareTo(x.Accuracy));
+
                     RememberScores(sMsg.Channel.Id, scores);
 
                     string recentText = showRecent ? "Recent " : "";
+                    recentText += sortByAcc ? "Sorted By Accuracy " : "";
 
                     Pages pages = CreateScorePages(scores, $"{recentText}Top osu! Scores For {userToCheck}");
 
@@ -627,6 +634,19 @@ namespace CirclesBot
             AddCMD("Links your osu! account to the bot", (sMsg, buffer) =>
             {
                 string username = buffer.GetRemaining();
+                StringBuilder strBuilder = new StringBuilder(username);
+
+                //All this code to make the first letter an uppercase tihi
+                for (int i = 0; i < strBuilder.Length; i++)
+                {
+                    if (char.IsLetter(strBuilder[i]))
+                    {
+                        strBuilder[i] = char.ToUpper(strBuilder[i]);
+                        username = strBuilder.ToString();
+                        break;
+                    }
+                }
+
                 var users = banchoAPI.GetUser(username, OsuGamemode.Standard);
 
                 if(users.Count < 1)
@@ -686,9 +706,8 @@ namespace CirclesBot
                     }
                 }
 
-                sMsg.Channel.SendMessageAsync($"Refreshing {beatmapID}!");
                 BeatmapManager.GetBeatmap(beatmapID, true);
-                sMsg.Channel.SendMessageAsync("Done!");
+                sMsg.Channel.SendMessageAsync($"Refreshed {beatmapID} :ok_hand:");
 
             }, ">refresh", ">rdl", ">f5", ">re");
         }
