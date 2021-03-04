@@ -60,10 +60,8 @@ namespace CirclesBot
 
                 if (max == null)
                     max = 100;
-                else if (max != null)
-                    max = Math.Max(max.Value, 2);
 
-                int roll = Utils.GetRandomNumber(1, max.Value);
+                int roll = Utils.GetRandomNumber(1, max.Value.Clamp(2, 2147483646));
 
                 sMsg.Channel.SendMessageAsync($"{sMsg.Author.Mention} :game_die: {roll} :game_die:");
             }, ">roll");
