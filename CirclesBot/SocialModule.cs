@@ -183,7 +183,8 @@ namespace CirclesBot
                     }
                 });
 
-                Logger.Log($"Saved {saveCounter} profiles took: {i} milliseconds", LogLevel.Info);
+                if(saveCounter > 0)
+                    Logger.Log($"Saved {saveCounter} profiles took: {i} milliseconds", LogLevel.Info);
             });
         }
 

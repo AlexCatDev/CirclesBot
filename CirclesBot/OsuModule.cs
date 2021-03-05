@@ -341,8 +341,12 @@ namespace CirclesBot
                     List<BanchoAPI.BanchoBestScore> bestUserPlays = banchoAPI.GetBestPlays(userToCheck, 100);
                     bestUserPlays.Sort((x, y) => y.PP.CompareTo(x.PP));
 
-                    List<BanchoAPI.BanchoBestScore> bestSortedUserPlays = new List<BanchoAPI.BanchoBestScore>(bestUserPlays);
-                    bestSortedUserPlays.Sort((x, y) => DateTime.Compare(y.DateOfPlay, x.DateOfPlay));
+                    List<BanchoAPI.BanchoBestScore> bestPlaysSortedByDate = new List<BanchoAPI.BanchoBestScore>(bestUserPlays);
+                    bestPlaysSortedByDate.Sort((x, y) => DateTime.Compare(y.DateOfPlay, x.DateOfPlay));
+
+                    List<BanchoAPI.BanchoBestScore> bestPlaysSortedByAcc = new List<BanchoAPI.BanchoBestScore>(bestUserPlays);
+                    bestPlaysSortedByAcc.Sort((x, y) => y.Accuracy.CompareTo(x.Accuracy));
+
 
                     if (bestUserPlays.Count == 0)
                     {
@@ -379,10 +383,15 @@ namespace CirclesBot
 
                         OsuScore score;
 
-                        if (showRecent)
+                        if (sortByAcc)
                         {
-                            score = new OsuScore(BeatmapManager.GetBeatmap(bestSortedUserPlays[i].BeatmapID), bestSortedUserPlays[i]);
-                            score.Placement = bestUserPlays.IndexOf(bestSortedUserPlays[i]) + 1;
+                            score = new OsuScore(BeatmapManager.GetBeatmap(bestPlaysSortedByAcc[i].BeatmapID), bestPlaysSortedByAcc[i]);
+                            score.Placement = bestUserPlays.IndexOf(bestPlaysSortedByAcc[i]) + 1;
+                        }
+                        else if (showRecent)
+                        {
+                            score = new OsuScore(BeatmapManager.GetBeatmap(bestPlaysSortedByDate[i].BeatmapID), bestPlaysSortedByDate[i]);
+                            score.Placement = bestUserPlays.IndexOf(bestPlaysSortedByDate[i]) + 1;
                         }
                         else
                         {
@@ -391,9 +400,6 @@ namespace CirclesBot
                         }
                         scores.Add(score);
                     }
-
-                    if (sortByAcc)
-                        scores.Sort((x, y) => y.Accuracy.CompareTo(x.Accuracy));
 
                     RememberScores(sMsg.Channel.Id, scores);
 
