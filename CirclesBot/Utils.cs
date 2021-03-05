@@ -92,27 +92,27 @@ namespace CirclesBot
 
         public static string PrettifyName(string name, string seperator = "_")
         {
-            List<string> nS = name.Split(seperator).ToList();
-            for (int j = 0; j < nS.Count; j++)
+            List<string> nameChunks = name.Split(seperator).ToList();
+            for (int nameChunkIndex = 0; nameChunkIndex < nameChunks.Count; nameChunkIndex++)
             {
-                StringBuilder builder = new StringBuilder(nS[j]);
+                StringBuilder builder = new StringBuilder(nameChunks[nameChunkIndex]);
                 for (int i = 0; i < builder.Length; i++)
                 {
                     if (char.IsLetter(builder[i]))
                     {
                         builder[i] = char.ToUpper(builder[i]);
-                        nS[j] = builder.ToString();
+                        nameChunks[nameChunkIndex] = builder.ToString();
                         break;
                     }
                 }
             }
 
             StringBuilder final = new StringBuilder();
-            for (int i = 0; i < nS.Count; i++)
+            for (int i = 0; i < nameChunks.Count; i++)
             {
-                final.Append(nS[i]);
+                final.Append(nameChunks[i]);
 
-                bool isLast = i == nS.Count - 1;
+                bool isLast = i == nameChunks.Count - 1;
                 if (isLast == false)
                     final.Append(" ");
             }

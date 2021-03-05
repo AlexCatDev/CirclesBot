@@ -87,6 +87,7 @@ namespace CirclesBot
         public OsuGamemode DefaultGamemode = OsuGamemode.Standard;
         public bool IsLazy;
         public uint PreferredColor;
+        public bool WasModified;
 
         /// <summary>
         /// Runescape formula :P
@@ -146,6 +147,7 @@ namespace CirclesBot
                 }
             }
             modifyAction?.Invoke(profile);
+            profile.WasModified = true;
             profileCache.TryAdd(discordID, profile);
         }
 
@@ -167,15 +169,21 @@ namespace CirclesBot
         {
             return Task.Factory.StartNew(() =>
             {
+                int saveCounter = 0;
                 double i = Utils.Benchmark(() =>
                 {
                     foreach (var profile in profileCache)
                     {
-                        File.WriteAllText($"{DiscordProfileDirectory}/{profile.Key}", JsonConvert.SerializeObject(profile.Value));
+                        if (profile.Value.WasModified)
+                        {
+                            profile.Value.WasModified = false;
+                            File.WriteAllText($"{DiscordProfileDirectory}/{profile.Key}", JsonConvert.SerializeObject(profile.Value));
+                            saveCounter++;
+                        }
                     }
                 });
 
-                Logger.Log($"saving {profileCache.Count} profiles took: {i} milliseconds", LogLevel.Info);
+                Logger.Log($"Saved {saveCounter} profiles took: {i} milliseconds", LogLevel.Info);
             });
         }
 
