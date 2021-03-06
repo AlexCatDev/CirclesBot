@@ -347,7 +347,6 @@ namespace CirclesBot
                     List<BanchoAPI.BanchoBestScore> bestPlaysSortedByAcc = new List<BanchoAPI.BanchoBestScore>(bestUserPlays);
                     bestPlaysSortedByAcc.Sort((x, y) => y.Accuracy.CompareTo(x.Accuracy));
 
-
                     if (bestUserPlays.Count == 0)
                     {
                         sMsg.Channel.SendMessageAsync($"**{userToCheck} doesn't have any top plays** :face_with_raised_eyebrow:");
