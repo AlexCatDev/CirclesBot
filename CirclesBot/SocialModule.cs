@@ -469,9 +469,15 @@ namespace CirclesBot
                     msg.CreateReactionCollector((userID, emote, wasAdded) => {
                         if (userID == userToDuel.Id)
                         {
+                            if (ticTacToeGames.Any((a) => a.Player1.Id == userToDuel.Id || a.Player1.Id == sMsg.Author.Id || a.Player2.Id == userToDuel.Id || a.Player2.Id == sMsg.Author.Id))
+                            {
+                                sMsg.Channel.SendMessageAsync("You or that person is already in a duel");
+                                msg.DeleteReactionCollector();
+                                return;
+                            }
+
                             sMsg.Channel.SendMessageAsync("You have accepted the duel!");
                             ticTacToeGames.Add(new TicTacToe(sMsg.Author, userToDuel, sMsg.Channel));
-                            msg.DeleteReactionCollector();
                         }
                     
                     }, new Emoji("⚔️"));
