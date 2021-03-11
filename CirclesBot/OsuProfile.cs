@@ -20,6 +20,8 @@ namespace CirclesBot
 
         public ulong ID { get; private set; }
 
+        public string Username { get; private set; }
+
         public float PP { get; private set; }
 
         public int SSHCount { get; private set; }
@@ -58,6 +60,7 @@ namespace CirclesBot
             JoinDate = banchoUser.JoinDate;
             TotalPlaytimeInSeconds = banchoUser.TotalPlaytimeInSeconds;
             RankedScore = banchoUser.RankedScore;
+            Username = banchoUser.Username;
         }
     }
 }

@@ -639,19 +639,6 @@ namespace CirclesBot
             AddCMD("Links your osu! account to the bot", (sMsg, buffer) =>
             {
                 string username = buffer.GetRemaining();
-                StringBuilder strBuilder = new StringBuilder(username);
-
-                //All this code to make the first letter an uppercase tihi
-                for (int i = 0; i < strBuilder.Length; i++)
-                {
-                    if (char.IsLetter(strBuilder[i]))
-                    {
-                        strBuilder[i] = char.ToUpper(strBuilder[i]);
-                        username = strBuilder.ToString();
-                        break;
-                    }
-                }
-
                 var users = banchoAPI.GetUser(username, OsuGamemode.Standard);
 
                 if(users.Count < 1)
@@ -663,11 +650,11 @@ namespace CirclesBot
                     var user = users.First();
                     Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
                     {
-                        profile.OsuUsername = username;
+                        profile.OsuUsername = user.Username;
                         profile.CountryFlag = user.Country;
                     });
 
-                    sMsg.Channel.SendMessageAsync("Your osu user has been set to: " + username);
+                    sMsg.Channel.SendMessageAsync("Your osu user has been set to: " + user.Username);
                 }
             }, ">osuset", ">set");
 

@@ -118,6 +118,9 @@ namespace CirclesBot
 
             [JsonProperty("total_seconds_played")]
             public int TotalPlaytimeInSeconds;
+
+            [JsonProperty("username")]
+            public string Username;
         }
 
         public class BanchoScore
