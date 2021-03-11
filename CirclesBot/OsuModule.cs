@@ -250,7 +250,7 @@ namespace CirclesBot
 
                     RememberScores(sMsg.Channel.Id, scores);
 
-                    Pages pages = CreateScorePages(scores, $"Recent {mode} plays for {Utils.PrettifyName(userToCheck)}");
+                    Pages pages = CreateScorePages(scores, $"Recent {mode} plays for {userToCheck}");
 
                     PagesHandler.SendPages(sMsg.Channel, pages);
                 }
@@ -304,7 +304,7 @@ namespace CirclesBot
 
                     RememberScores(sMsg.Channel.Id, scores);
 
-                    Pages pages = CreateScorePages(scores, $"Scores for {Utils.PrettifyName(userToCheck)} on on {scores[0].SongName} [{scores[0].DifficultyName}]");
+                    Pages pages = CreateScorePages(scores, $"Scores for {userToCheck} on on {scores[0].SongName} [{scores[0].DifficultyName}]");
 
                     PagesHandler.SendPages(sMsg.Channel, pages);
                 }
@@ -405,7 +405,7 @@ namespace CirclesBot
                     string recentText = showRecent ? "Recent " : "";
                     recentText += sortByAcc ? "Sorted By Accuracy " : "";
 
-                    Pages pages = CreateScorePages(scores, $"{recentText}Top osu! Scores For {Utils.PrettifyName(userToCheck)}");
+                    Pages pages = CreateScorePages(scores, $"{recentText}Top osu! Scores For {userToCheck}");
 
                     PagesHandler.SendPages(sMsg.Channel, pages);
                 }
@@ -584,7 +584,7 @@ namespace CirclesBot
                         scores.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID), play, beatmapID));
                     }
 
-                    Pages pages = CreateScorePages(scores, $"Scores for {Utils.PrettifyName(userToCheck)} on {scores[0].SongName} [{scores[0].DifficultyName}]");
+                    Pages pages = CreateScorePages(scores, $"Scores for {userToCheck} on {scores[0].SongName} [{scores[0].DifficultyName}]");
 
                     PagesHandler.SendPages(sMsg.Channel, pages);
                 }
@@ -623,7 +623,7 @@ namespace CirclesBot
 
                     EmbedBuilder embedBuilder = CreateProfileEmbed(new OsuProfile(user), topPlays);
 
-                    embedBuilder.WithAuthor($"{mode} Profile For {Utils.PrettifyName(userToCheck)}", BanchoAPI.GetFlagImageUrl(user.Country));
+                    embedBuilder.WithAuthor($"{mode} Profile For {userToCheck}", BanchoAPI.GetFlagImageUrl(user.Country));
 
                     embedBuilder.WithThumbnailUrl(BanchoAPI.GetProfileImageUrl(user.ID.ToString()));
 

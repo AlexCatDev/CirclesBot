@@ -90,35 +90,6 @@ namespace CirclesBot
                 return 0;
         }
 
-        public static string PrettifyName(string name, string seperator = "_")
-        {
-            List<string> nameChunks = name.Split(seperator).ToList();
-            for (int nameChunkIndex = 0; nameChunkIndex < nameChunks.Count; nameChunkIndex++)
-            {
-                StringBuilder builder = new StringBuilder(nameChunks[nameChunkIndex]);
-                for (int i = 0; i < builder.Length; i++)
-                {
-                    if (char.IsLetter(builder[i]))
-                    {
-                        builder[i] = char.ToUpper(builder[i]);
-                        nameChunks[nameChunkIndex] = builder.ToString();
-                        break;
-                    }
-                }
-            }
-
-            StringBuilder final = new StringBuilder();
-            for (int i = 0; i < nameChunks.Count; i++)
-            {
-                final.Append(nameChunks[i]);
-
-                bool isLast = i == nameChunks.Count - 1;
-                if (isLast == false)
-                    final.Append(" ");
-            }
-            return final.ToString();
-        }
-
         public static double Benchmark(Action a)
         {
             Stopwatch sw = Stopwatch.StartNew();
