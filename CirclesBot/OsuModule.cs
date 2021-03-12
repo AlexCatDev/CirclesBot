@@ -94,7 +94,7 @@ namespace CirclesBot
                         Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(firstScore.BeatmapID)).ToString()));
 
                     embedBuilder.WithDescription(description);
-                    embedBuilder.WithAuthor($"{authorText}", BanchoAPI.GetProfileImageUrl(score.UserID.ToString()));
+                    embedBuilder.WithAuthor(authorText, BanchoAPI.GetProfileImageUrl(score.UserID.ToString()));
 
                     embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
 
@@ -114,17 +114,12 @@ namespace CirclesBot
                 }
 
                 if (tempDesc.Length + description.Length >= 2048)
-                {
                     CompileEmbed();
-                    description += tempDesc;
-                }
-                else
-                {
-                    description += tempDesc;
 
-                    if (isLastScore)
-                        CompileEmbed();
-                }
+                description += tempDesc;
+
+                if (isLastScore)
+                    CompileEmbed();
             }
 
             return pages;
