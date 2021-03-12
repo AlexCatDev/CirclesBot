@@ -487,7 +487,7 @@ namespace CirclesBot
 
             AddCMD("View your inventory", (sMsg, buffer) =>
             {
-                Discord.WebSocket.SocketUser userToCheck;
+                SocketUser userToCheck;
 
                 if (sMsg.MentionedUsers.Count > 0)
                     userToCheck = sMsg.MentionedUsers.First();
@@ -515,7 +515,7 @@ namespace CirclesBot
 
             AddCMD("View your profile", (sMsg, buffer) =>
             {
-                Discord.WebSocket.SocketUser userToCheck;
+                SocketUser userToCheck;
 
                 if (sMsg.MentionedUsers.Count > 0)
                     userToCheck = sMsg.MentionedUsers.First();
@@ -563,34 +563,9 @@ namespace CirclesBot
                 sMsg.Channel.SendMessageAsync("", false, builder.Build());
             }, ">profile", ">pf");
 
-            AddCMD("itemtest", (sMsg, buffer) =>
-            {
-                if (sMsg.Author.Id == Program.Config.BotOwnerID)
-                {
-                    GetProfile(sMsg.Author.Id, (profile) =>
-                    {
-                        profile.Inventory.Add(new Item()
-                        {
-                            Name = "Test Item",
-                            Damage = 1337,
-                            Accuracy = 69,
-                            HealAmount = 727,
-                            Description = "A Test Item",
-                            Icon = ":sunglasses:"
-                        });
-                    });
-
-                    sMsg.Channel.SendMessageAsync($"Gave u testitem");
-                }
-                else
-                {
-                    sMsg.Channel.SendMessageAsync("no");
-                }
-            }, ">itemtest");
-
             AddCMD("Wipes a profile", (sMsg, buffer) =>
             {
-                Discord.WebSocket.SocketUser userToCheck;
+                SocketUser userToCheck;
 
                 if (sMsg.MentionedUsers.Count > 0)
                     userToCheck = sMsg.MentionedUsers.First();
@@ -615,7 +590,7 @@ namespace CirclesBot
             {
                 ulong? xp = buffer.GetULong();
 
-                Discord.WebSocket.SocketUser userToCheck;
+                SocketUser userToCheck;
 
                 if (sMsg.MentionedUsers.Count > 0)
                     userToCheck = sMsg.MentionedUsers.First();

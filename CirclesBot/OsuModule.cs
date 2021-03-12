@@ -338,16 +338,16 @@ namespace CirclesBot
 
                 try
                 {
-                    List<BanchoAPI.BanchoBestScore> bestUserPlays = banchoAPI.GetBestPlays(userToCheck, 100);
-                    bestUserPlays.Sort((x, y) => y.PP.CompareTo(x.PP));
+                    List<BanchoAPI.BanchoBestScore> bestPlaysSortedByPP = banchoAPI.GetBestPlays(userToCheck, 100);
+                    bestPlaysSortedByPP.Sort((x, y) => y.PP.CompareTo(x.PP));
 
-                    List<BanchoAPI.BanchoBestScore> bestPlaysSortedByDate = new List<BanchoAPI.BanchoBestScore>(bestUserPlays);
+                    List<BanchoAPI.BanchoBestScore> bestPlaysSortedByDate = new List<BanchoAPI.BanchoBestScore>(bestPlaysSortedByPP);
                     bestPlaysSortedByDate.Sort((x, y) => DateTime.Compare(y.DateOfPlay, x.DateOfPlay));
 
-                    List<BanchoAPI.BanchoBestScore> bestPlaysSortedByAcc = new List<BanchoAPI.BanchoBestScore>(bestUserPlays);
+                    List<BanchoAPI.BanchoBestScore> bestPlaysSortedByAcc = new List<BanchoAPI.BanchoBestScore>(bestPlaysSortedByPP);
                     bestPlaysSortedByAcc.Sort((x, y) => y.Accuracy.CompareTo(x.Accuracy));
 
-                    if (bestUserPlays.Count == 0)
+                    if (bestPlaysSortedByPP.Count == 0)
                     {
                         sMsg.Channel.SendMessageAsync($"**{userToCheck} doesn't have any top plays** :face_with_raised_eyebrow:");
                         return;
@@ -358,7 +358,7 @@ namespace CirclesBot
                         if (ppToCheck.HasValue)
                         {
                             int count = 0;
-                            foreach (var item in bestUserPlays)
+                            foreach (var item in bestPlaysSortedByPP)
                             {
                                 if (item.PP >= ppToCheck.Value)
                                     count++;
@@ -375,7 +375,7 @@ namespace CirclesBot
                     }
 
                     List<OsuScore> scores = new List<OsuScore>();
-                    for (int i = 0; i < bestUserPlays.Count; i++)
+                    for (int i = 0; i < bestPlaysSortedByPP.Count; i++)
                     {
                         if (i >= 10)
                             break;
@@ -385,16 +385,16 @@ namespace CirclesBot
                         if (sortByAcc)
                         {
                             score = new OsuScore(BeatmapManager.GetBeatmap(bestPlaysSortedByAcc[i].BeatmapID), bestPlaysSortedByAcc[i]);
-                            score.Placement = bestUserPlays.IndexOf(bestPlaysSortedByAcc[i]) + 1;
+                            score.Placement = bestPlaysSortedByPP.IndexOf(bestPlaysSortedByAcc[i]) + 1;
                         }
                         else if (showRecent)
                         {
                             score = new OsuScore(BeatmapManager.GetBeatmap(bestPlaysSortedByDate[i].BeatmapID), bestPlaysSortedByDate[i]);
-                            score.Placement = bestUserPlays.IndexOf(bestPlaysSortedByDate[i]) + 1;
+                            score.Placement = bestPlaysSortedByPP.IndexOf(bestPlaysSortedByDate[i]) + 1;
                         }
                         else
                         {
-                            score = new OsuScore(BeatmapManager.GetBeatmap(bestUserPlays[i].BeatmapID), bestUserPlays[i]);
+                            score = new OsuScore(BeatmapManager.GetBeatmap(bestPlaysSortedByPP[i].BeatmapID), bestPlaysSortedByPP[i]);
                             score.Placement = i + 1;
                         }
                         scores.Add(score);
