@@ -29,8 +29,14 @@ namespace CirclesBot
 
         private EmbedBuilder CreateProfileEmbed(OsuProfile osuProfile, List<BanchoAPI.BanchoBestScore> topPlays)
         {
-            float ppStart = topPlays[0].PP;
-            float ppEnd = topPlays.Last().PP;
+            float ppStart = 0;
+            float ppEnd = 0;
+
+            if (topPlays.Count > 0)
+            {
+                ppStart = topPlays[0].PP;
+                ppEnd = topPlays.Last().PP;
+            }
 
             EmbedBuilder embedBuilder = new EmbedBuilder();
             embedBuilder.Description += $"▸ **[Profile Link](https://osu.ppy.sh/users/{osuProfile.ID}/osu)**\n";

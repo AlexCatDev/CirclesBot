@@ -71,52 +71,52 @@ namespace CirclesBot
 
         public class BanchoUser
         {
-            [JsonProperty("playcount")]
+            [JsonProperty("playcount", NullValueHandling = NullValueHandling.Ignore)]
             public int Playcount;
 
-            [JsonProperty("pp_rank")]
+            [JsonProperty("pp_rank", NullValueHandling = NullValueHandling.Ignore)]
             public int Rank;
 
-            [JsonProperty("level")]
+            [JsonProperty("level", NullValueHandling = NullValueHandling.Ignore)]
             public float Level;
 
-            [JsonProperty("accuracy")]
+            [JsonProperty("accuracy", NullValueHandling = NullValueHandling.Ignore)]
             public float Accuracy;
 
-            [JsonProperty("country")]
+            [JsonProperty("country", NullValueHandling = NullValueHandling.Ignore)]
             public string Country;
 
-            [JsonProperty("pp_country_rank")]
+            [JsonProperty("pp_country_rank", NullValueHandling = NullValueHandling.Ignore)]
             public int CountryRank;
 
-            [JsonProperty("user_id")]
+            [JsonProperty("user_id", NullValueHandling = NullValueHandling.Ignore)]
             public ulong ID;
 
-            [JsonProperty("pp_raw")]
+            [JsonProperty("pp_raw", NullValueHandling = NullValueHandling.Ignore)]
             public float PP;
 
-            [JsonProperty("ranked_score")]
+            [JsonProperty("ranked_score", NullValueHandling = NullValueHandling.Ignore)]
             public long RankedScore;
 
-            [JsonProperty("count_rank_ssh")]
+            [JsonProperty("count_rank_ssh", NullValueHandling = NullValueHandling.Ignore)]
             public int SSHCount;
 
-            [JsonProperty("count_rank_ss")]
+            [JsonProperty("count_rank_ss", NullValueHandling = NullValueHandling.Ignore)]
             public int SSCount;
 
-            [JsonProperty("count_rank_sh")]
+            [JsonProperty("count_rank_sh", NullValueHandling = NullValueHandling.Ignore)]
             public int SHCount;
 
-            [JsonProperty("count_rank_s")]
+            [JsonProperty("count_rank_s", NullValueHandling = NullValueHandling.Ignore)]
             public int SCount;
 
-            [JsonProperty("count_rank_a")]
+            [JsonProperty("count_rank_a", NullValueHandling = NullValueHandling.Ignore)]
             public int ACount;
 
             [JsonProperty("join_date")]
             public DateTime JoinDate;
 
-            [JsonProperty("total_seconds_played")]
+            [JsonProperty("total_seconds_played", NullValueHandling = NullValueHandling.Ignore)]
             public int TotalPlaytimeInSeconds;
 
             [JsonProperty("username")]
