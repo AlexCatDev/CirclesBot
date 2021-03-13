@@ -480,7 +480,12 @@ namespace CirclesBot
                     }
 
                     if (mods == Mods.Null)
-                        mods = channelToScores[sMsg.Channel.Id][0].EnabledMods;
+                    {
+                        if (channelToScores.ContainsKey(sMsg.Channel.Id))
+                            mods = channelToScores[sMsg.Channel.Id][0].EnabledMods;
+                        else
+                            mods = Mods.NM;
+                    }
 
                     string localBeatmap = BeatmapManager.GetBeatmap(beatmapID);
 
