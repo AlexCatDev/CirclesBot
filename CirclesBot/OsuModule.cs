@@ -61,11 +61,36 @@ namespace CirclesBot
             int count = 0;
             string description = "";
 
+            void CompileEmbed(bool isLastScore, OsuScore score, OsuScore firstScore)
+            {
+                embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(
+                    Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(firstScore.BeatmapID)).ToString()));
+
+                embedBuilder.WithDescription(description);
+                embedBuilder.WithAuthor(authorText, BanchoAPI.GetProfileImageUrl(score.UserID.ToString()));
+
+                embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
+
+                int currentScoreIndex = 0;
+
+                if (isLastScore)
+                    currentScoreIndex = scores.IndexOf(score) + 1;
+                else
+                    currentScoreIndex = scores.IndexOf(score);
+
+                embedBuilder.WithFooter($"Displaying {currentScoreIndex}/{scores.Count} Scores");
+
+                pages.AddEmbed(embedBuilder.Build());
+                embedBuilder = new EmbedBuilder();
+                firstScore = null;
+                description = "";
+            }
+
             OsuScore firstScore = null;
 
             foreach (var score in scores)
             {
-                if (firstScore == null)
+                if (firstScore is null)
                     firstScore = score;
 
                 count++;
@@ -98,38 +123,13 @@ namespace CirclesBot
 
                 tempDesc += $"▸ Score set {Utils.FormatTime(DateTime.UtcNow - score.Date)}\n";
 
-                void CompileEmbed()
-                {
-                    embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(
-                        Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(firstScore.BeatmapID)).ToString()));
-
-                    embedBuilder.WithDescription(description);
-                    embedBuilder.WithAuthor(authorText, BanchoAPI.GetProfileImageUrl(score.UserID.ToString()));
-
-                    embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
-
-                    int currentScoreIndex = 0;
-
-                    if (isLastScore)
-                        currentScoreIndex = scores.IndexOf(score) + 1;
-                    else
-                        currentScoreIndex = scores.IndexOf(score);
-
-                    embedBuilder.WithFooter($"Displaying {currentScoreIndex}/{scores.Count} Scores");
-
-                    pages.AddEmbed(embedBuilder.Build());
-                    embedBuilder = new EmbedBuilder();
-                    firstScore = null;
-                    description = "";
-                }
-
                 if (tempDesc.Length + description.Length >= 2048)
-                    CompileEmbed();
+                    CompileEmbed(isLastScore, score, firstScore);
 
                 description += tempDesc;
 
                 if (isLastScore)
-                    CompileEmbed();
+                    CompileEmbed(isLastScore, score, firstScore);
             }
 
             return pages;
@@ -201,9 +201,9 @@ namespace CirclesBot
                 sMsg.Channel.SendMessageAsync("You can now __no longer__ use lazy commands.");
             }, ">iamnotlazy");
 
-            AddCMD("Diplays server leaderboard for map", async (sMsg, buffer) =>
+            AddCMD("Diplays server leaderboard for map", (sMsg, buffer) =>
             {
-                var users = sMsg.Channel.GetUsersAsync();
+                var users = sMsg.Channel.GetUsersAsync().FlattenAsync().GetAwaiter().GetResult();
 
                 string beatmap = buffer.GetParameter("https://osu.ppy.sh/beatmapsets/");
                 ulong beatmapSetID = 0;
@@ -218,7 +218,7 @@ namespace CirclesBot
                     }
                     catch
                     {
-                        await sMsg.Channel.SendMessageAsync("Error parsing beatmap url.");
+                        sMsg.Channel.SendMessageAsync("Error parsing beatmap url.");
                         return;
                     }
                 }
@@ -226,7 +226,7 @@ namespace CirclesBot
                 {
                     if (channelToScores.TryGetValue(sMsg.Channel.Id, out List<OsuScore> aScores) == false)
                     {
-                        await sMsg.Channel.SendMessageAsync("No beatmap found in conversation");
+                        sMsg.Channel.SendMessageAsync("No beatmap found in conversation");
                         return;
                     }
 
@@ -234,30 +234,24 @@ namespace CirclesBot
                 }
 
                 List<OsuScore> allScores = new List<OsuScore>();
-
-                await foreach (var userCollection in users)
+                foreach (var user in users)
                 {
-                    foreach (var user in userCollection)
-                    {
-                        string workingOsuUser = Program.GetModule<SocialModule>().GetProfile(user.Id).OsuUsername;
+                    string workingOsuUser = Program.GetModule<SocialModule>().GetProfile(user.Id).OsuUsername;
 
-                        if (string.IsNullOrEmpty(workingOsuUser))
-                            continue;
+                    if (string.IsNullOrEmpty(workingOsuUser))
+                        continue;
 
-                        var scores = banchoAPI.GetScores(workingOsuUser, beatmapID, 1);
+                    var scores = banchoAPI.GetScores(workingOsuUser, beatmapID, 1);
 
-                        if (scores.Count == 0)
-                            continue;
+                    if (scores.Count == 0)
+                        continue;
 
-                        var score = scores.First();
-
-                        allScores.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID), score, beatmapID));
-                    }
+                    allScores.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID), scores.First(), beatmapID));
                 }
 
                 if (allScores.Count == 0)
                 {
-                    await sMsg.Channel.SendMessageAsync("No one has any scores on this map.");
+                    sMsg.Channel.SendMessageAsync("No one has any scores on this map.");
                     return;
                 }
 
