@@ -200,6 +200,8 @@ namespace CirclesBot
                         tempDesc += $"`{commandCounter++}.` **{new CommandBuffer(command.Triggers, "").GetRemaining(", ")}** (*{command.Description}*)";
                         if (command.IsEnabled == false)
                             tempDesc += " -> `Has been disabled!`";
+                        if (command.Cooldown > 0)
+                            tempDesc += $" -> `Cooldown: {command.Cooldown}`";
 
                         tempDesc += "\n";
 

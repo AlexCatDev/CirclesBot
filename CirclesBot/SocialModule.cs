@@ -83,6 +83,7 @@ namespace CirclesBot
         public ulong MessagesSent = 0;
         public List<Item> Inventory = new List<Item>();
         public List<Badge> Badges = new List<Badge>();
+        public DateTime LastCommand;
         public string OsuUsername = "";
         public string CountryFlag = "";
         public OsuGamemode DefaultGamemode = OsuGamemode.Standard;

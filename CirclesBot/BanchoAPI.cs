@@ -64,6 +64,7 @@ namespace CirclesBot
         {
             using (WebClient wc = new WebClient())
             {
+                TotalAPICalls++;
                 string json = wc.DownloadString($"https://osu.ppy.sh/api/get_scores?k={apiKey}&b={beatmapID}&u={username}&m={(int)mode}&limit={limit}&type=string");
                 return JsonConvert.DeserializeObject<List<BanchoScore>>(json);
             }

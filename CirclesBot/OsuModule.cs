@@ -67,16 +67,13 @@ namespace CirclesBot
                     Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(firstScore.BeatmapID)).ToString()));
 
                 embedBuilder.WithDescription(description);
-                embedBuilder.WithAuthor(authorText, BanchoAPI.GetProfileImageUrl(score.UserID.ToString()));
+                embedBuilder.WithAuthor(authorText, BanchoAPI.GetProfileImageUrl(firstScore.UserID.ToString()));
 
                 embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
 
                 int currentScoreIndex = 0;
 
-                if (isLastScore)
-                    currentScoreIndex = scores.IndexOf(score) + 1;
-                else
-                    currentScoreIndex = scores.IndexOf(score);
+                currentScoreIndex = scores.IndexOf(score);
 
                 embedBuilder.WithFooter($"Displaying {currentScoreIndex}/{scores.Count} Scores");
 
@@ -109,8 +106,11 @@ namespace CirclesBot
                 if (((double)score.MaxCombo / score.MapMaxCombo) < 0.994)
                     isFCInfo = $" ({score.PP_IF_FC.ToString("F2")}PP for {score.IF_FC_Accuracy.ToString("F2")}% FC)";
 
-                if(isLeaderboard)
-                    tempDesc += $"**{count}. {score.Username} +{score.EnabledMods.ToFriendlyString()}** [{score.StarRating:F2}★]\n";
+                if (isLeaderboard)
+                {
+                    string leader = count == 1 ? ":crown: " : $"{count}. ";
+                    tempDesc += $"**{leader} {score.Username} +{score.EnabledMods.ToFriendlyString()}** [{score.StarRating:F2}★]\n";
+                }
                 else
                     tempDesc += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]\n";
 
@@ -206,15 +206,13 @@ namespace CirclesBot
                 var users = sMsg.Channel.GetUsersAsync().FlattenAsync().GetAwaiter().GetResult();
 
                 string beatmap = buffer.GetParameter("https://osu.ppy.sh/beatmapsets/");
-                ulong beatmapSetID = 0;
                 ulong beatmapID = 0;
 
                 if (beatmap != "")
                 {
                     try
                     {
-                        beatmapSetID = ulong.Parse(beatmap.Split("#osu/")[0]);
-                        beatmapID = ulong.Parse(beatmap.Split("#osu/")[1]);
+                        beatmapID = ulong.Parse(beatmap.Split('/').Last());
                     }
                     catch
                     {
@@ -256,6 +254,8 @@ namespace CirclesBot
                 }
 
                 allScores.Sort((x, y) => y.Score.CompareTo(x.Score));
+
+                RememberScores(sMsg.Channel.Id, allScores);
 
                 var pages = CreateScorePages(allScores, $"Server leaderboard on {allScores.First().SongName} [{allScores.First().DifficultyName}]", isLeaderboard: true);
                 PagesHandler.SendPages(sMsg.Channel, pages);
@@ -730,7 +730,7 @@ namespace CirclesBot
                 }
             }, ">osuset", ">set");
 
-            AddCMD("Use this command if a unranked map is not upto date with bot", (sMsg, buffer) =>
+            Commands.Add(new Command("Use this command if a map is out of sync with bots version", (sMsg, buffer) =>
             {
                 int? indexToCheck = buffer.GetInt();
 
@@ -773,7 +773,8 @@ namespace CirclesBot
                 BeatmapManager.GetBeatmap(beatmapID, true);
                 sMsg.Channel.SendMessageAsync($"Refreshed {beatmapID} :ok_hand:");
 
-            }, ">refresh", ">rdl", ">f5", ">re");
+            }, ">refresh", ">rdl", ">f5", ">re")
+            { Cooldown = 10 });
         }
     }
 }

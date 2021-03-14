@@ -15,6 +15,7 @@ namespace CirclesBot
         private Action<SocketUserMessage, CommandBuffer> onActivate;
 
         public bool IsEnabled { get; set; } = true;
+        public double Cooldown { get; set; }
 
         public Command(string description, Action<SocketUserMessage, CommandBuffer> onActivate, params string[] triggers)
         {
@@ -38,6 +39,21 @@ namespace CirclesBot
                 args.RemoveAt(0);
                 if (IsEnabled)
                 {
+                    if (Cooldown > 0)
+                    {
+                        var time = DateTime.Now - Program.GetModule<SocialModule>().GetProfile(userMsg.Author.Id).LastCommand;
+
+                        if (time.TotalSeconds < Cooldown)
+                        {
+                            userMsg.Channel.SendMessageAsync($"You're on cooldown: **{(Cooldown - time.TotalSeconds):F2}s**");
+                            return;
+                        }
+
+                        Program.GetModule<SocialModule>().ModifyProfile(userMsg.Author.Id, profile =>
+                        {
+                            profile.LastCommand = DateTime.Now;
+                        });
+                    }
                     onActivate?.Invoke(userMsg, new CommandBuffer(args, trigger));
                     Program.TotalCommandsHandled++;
                 }

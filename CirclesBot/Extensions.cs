@@ -84,9 +84,8 @@ namespace CirclesBot
                 activeReactionCollectors.Remove(userMessage.Id);
         }
 
-
         //Credits: Stackoverflow person -> Martin Liversage
-        public static IEnumerable<ReadOnlyMemory<char>> SplitInParts(this String s, Int32 partLength)
+        public static IEnumerable<ReadOnlyMemory<char>> SplitInParts(this string s, int partLength)
         {
             if (s == null)
                 throw new ArgumentNullException(nameof(s));
