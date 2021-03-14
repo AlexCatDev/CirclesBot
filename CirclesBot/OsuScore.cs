@@ -38,6 +38,7 @@ namespace CirclesBot
         public ulong BeatmapID { get; private set; }
 
         public ulong UserID { get; private set; }
+        public string Username { get; private set; }
 
         public float StarRating { get; private set; }
         public float CS { get; private set; }
@@ -52,6 +53,7 @@ namespace CirclesBot
         public OsuScore(string beatmap, BanchoAPI.BanchoScore banchoPlay, ulong beatmapID)
         {
             UserID = banchoPlay.UserID;
+            Username = banchoPlay.Username;
             Date = banchoPlay.DateOfPlay;
             Count300 = banchoPlay.Count300;
             Count100 = banchoPlay.Count100;

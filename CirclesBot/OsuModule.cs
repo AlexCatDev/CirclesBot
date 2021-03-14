@@ -53,7 +53,7 @@ namespace CirclesBot
             return embedBuilder;
         }
 
-        private Pages CreateScorePages(List<OsuScore> scores, string authorText)
+        private Pages CreateScorePages(List<OsuScore> scores, string authorText, bool isLeaderboard = false)
         {
             EmbedBuilder embedBuilder = new EmbedBuilder();
             Pages pages = new Pages();
@@ -84,7 +84,11 @@ namespace CirclesBot
                 if (((double)score.MaxCombo / score.MapMaxCombo) < 0.994)
                     isFCInfo = $" ({score.PP_IF_FC.ToString("F2")}PP for {score.IF_FC_Accuracy.ToString("F2")}% FC)";
 
-                tempDesc += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]\n";
+                if(isLeaderboard)
+                    tempDesc += $"**{count}. {score.Username} +{score.EnabledMods.ToFriendlyString()}** [{score.StarRating:F2}★]\n";
+                else
+                    tempDesc += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]\n";
+
                 tempDesc += $"▸ {Utils.GetEmoteForRankLetter(score.RankingLetter)} ▸ **{score.PP.ToString("F2")}PP**{placementText}{isFCInfo} ▸ {score.Accuracy.ToString("F2")}%\n";
                 tempDesc += $"▸ {score.Score} ▸ x{score.MaxCombo}/{score.MapMaxCombo} ▸ [{score.Count300}/{score.Count100}/{score.Count50}/{score.CountMiss}]\n";
                 tempDesc += $"▸ **AR:** {score.AR.ToString("F1")} **OD:** {score.OD.ToString("F1")} **HP:** {score.HP.ToString("F1")} **CS:** {score.CS.ToString("F1")} ▸ **BPM:** {score.BPM.ToString("F0")}\n";
@@ -136,7 +140,7 @@ namespace CirclesBot
             string username = "";
             if (sMsg.MentionedUsers.Count > 0)
             {
-                Program.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id, profile =>
+                Program.GetModule<SocialModule>().ModifyProfile(sMsg.MentionedUsers.First().Id, profile =>
                 {
                     username = profile.OsuUsername;
                 });
@@ -153,7 +157,7 @@ namespace CirclesBot
 
             if (username == "")
             {
-                Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
+                Program.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
                 {
                     username = profile.OsuUsername;
                 });
@@ -178,9 +182,9 @@ namespace CirclesBot
 
         public OsuModule()
         {
-            AddCMD("Enable the use of '.' in place of >rs", (sMsg, buffer) =>
+            AddCMD("Enable the use of '.' and ',' in place of >rs and >c", (sMsg, buffer) =>
             {
-                Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
+                Program.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
                 {
                     profile.IsLazy = true;
                 });
@@ -188,14 +192,80 @@ namespace CirclesBot
                 sMsg.Channel.SendMessageAsync("You can now use lazy commands.");
             }, ">iamlazy");
 
-            AddCMD("Enable the use of ',' in place of >c", (sMsg, buffer) =>
+            AddCMD("Disable '.' and ','", (sMsg, buffer) =>
             {
-                Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
+                Program.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
                 {
                     profile.IsLazy = false;
                 });
                 sMsg.Channel.SendMessageAsync("You can now __no longer__ use lazy commands.");
             }, ">iamnotlazy");
+
+            AddCMD("Diplays server leaderboard for map", async (sMsg, buffer) =>
+            {
+                var users = sMsg.Channel.GetUsersAsync();
+
+                string beatmap = buffer.GetParameter("https://osu.ppy.sh/beatmapsets/");
+                ulong beatmapSetID = 0;
+                ulong beatmapID = 0;
+
+                if (beatmap != "")
+                {
+                    try
+                    {
+                        beatmapSetID = ulong.Parse(beatmap.Split("#osu/")[0]);
+                        beatmapID = ulong.Parse(beatmap.Split("#osu/")[1]);
+                    }
+                    catch
+                    {
+                        await sMsg.Channel.SendMessageAsync("Error parsing beatmap url.");
+                        return;
+                    }
+                }
+                else
+                {
+                    if (channelToScores.TryGetValue(sMsg.Channel.Id, out List<OsuScore> aScores) == false)
+                    {
+                        await sMsg.Channel.SendMessageAsync("No beatmap found in conversation");
+                        return;
+                    }
+
+                    beatmapID = aScores.First().BeatmapID;
+                }
+
+                List<OsuScore> allScores = new List<OsuScore>();
+
+                await foreach (var userCollection in users)
+                {
+                    foreach (var user in userCollection)
+                    {
+                        string workingOsuUser = Program.GetModule<SocialModule>().GetProfile(user.Id).OsuUsername;
+
+                        if (string.IsNullOrEmpty(workingOsuUser))
+                            continue;
+
+                        var scores = banchoAPI.GetScores(workingOsuUser, beatmapID, 1);
+
+                        if (scores.Count == 0)
+                            continue;
+
+                        var score = scores.First();
+
+                        allScores.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID), score, beatmapID));
+                    }
+                }
+
+                if (allScores.Count == 0)
+                {
+                    await sMsg.Channel.SendMessageAsync("No one has any scores on this map.");
+                    return;
+                }
+
+                allScores.Sort((x, y) => y.Score.CompareTo(x.Score));
+
+                var pages = CreateScorePages(allScores, $"Server leaderboard on {allScores.First().SongName} [{allScores.First().DifficultyName}]", isLeaderboard: true);
+                PagesHandler.SendPages(sMsg.Channel, pages);
+            }, ">leaderboard", ">lb");
 
             //Optimized
             AddCMD("Display recent scores for you or someone else", (sMsg, buffer) =>
@@ -203,7 +273,7 @@ namespace CirclesBot
                 if (sMsg.Content.StartsWith("."))
                 {
                     bool isLazy = false;
-                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
+                    Program.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
                     {
                         isLazy = profile.IsLazy;
                     });
@@ -421,15 +491,23 @@ namespace CirclesBot
             {
                 buffer.Discard("%");
 
-                int? indexToCheck = (int?)buffer.GetInt();
+                int? indexToCheck = buffer.GetInt();
 
                 double? accuracy = buffer.GetDouble();
 
                 if (accuracy == null)
                 {
+                    if (indexToCheck == null)
+                    {
+                        sMsg.Channel.SendMessageAsync("Example: >pp 98.5% HDDT");
+                        return;
+                    }
+
                     accuracy = indexToCheck;
                     indexToCheck = null;
                 }
+
+                accuracy = Math.Clamp(accuracy.Value, 0, 100);
 
                 string beatmap = buffer.GetParameter("https://osu.ppy.sh/beatmapsets/");
                 ulong beatmapSetID = 0;
@@ -473,12 +551,6 @@ namespace CirclesBot
 
                 try
                 {
-                    if (accuracy == null)
-                    {
-                        sMsg.Channel.SendMessageAsync("Example: >pp 98.5% HDDT");
-                        return;
-                    }
-
                     if (mods == Mods.Null)
                     {
                         if (channelToScores.ContainsKey(sMsg.Channel.Id))
@@ -519,7 +591,7 @@ namespace CirclesBot
                 if (sMsg.Content.StartsWith(","))
                 {
                     bool isLazy = false;
-                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
+                    Program.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
                     {
                         isLazy = profile.IsLazy;
                     });
@@ -654,7 +726,7 @@ namespace CirclesBot
                 else
                 {
                     var user = users.First();
-                    Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id, profile =>
+                    Program.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
                     {
                         profile.OsuUsername = user.Username;
                         profile.CountryFlag = user.Country;

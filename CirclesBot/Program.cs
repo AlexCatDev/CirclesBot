@@ -310,13 +310,13 @@ namespace CirclesBot
 
                 if (IgnoreMessages)
                     return Task.Delay(0);
-
+                /*
                 //1% chance
                 if (Utils.GetRandomChance(1))
                 {
                     s.Channel.SendMessageAsync(RandomQuirkyResponses[Utils.GetRandomNumber(0, RandomQuirkyResponses.Length - 1)]);
                 }
-
+                */
                 try
                 {
                     foreach (var module in LoadedModules)

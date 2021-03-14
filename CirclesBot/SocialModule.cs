@@ -129,7 +129,7 @@ namespace CirclesBot
 
         private ConcurrentDictionary<ulong, DiscordProfile> profileCache = new ConcurrentDictionary<ulong, DiscordProfile>();
 
-        public void GetProfile(ulong discordID, Action<DiscordProfile> modifyAction)
+        public void ModifyProfile(ulong discordID, Action<DiscordProfile> modifyAction)
         {
             DiscordProfile profile = null;
 
@@ -150,6 +150,30 @@ namespace CirclesBot
             modifyAction?.Invoke(profile);
             profile.WasModified = true;
             profileCache.TryAdd(discordID, profile);
+        }
+
+        public DiscordProfile GetProfile(ulong discordID)
+        {
+            DiscordProfile profile = null;
+
+            //if not in cache
+            if (profileCache.TryGetValue(discordID, out profile) == false)
+            {
+                //if not in cache, attempt to read from disk
+                if (File.Exists($"{DiscordProfileDirectory}/{discordID}"))
+                {
+                    profile = JsonConvert.DeserializeObject<DiscordProfile>(File.ReadAllText($"{DiscordProfileDirectory}/{discordID}"));
+                }
+                else
+                {
+                    //if not on disk create new
+                    profile = new DiscordProfile();
+                }
+            }
+
+            profileCache.TryAdd(discordID, profile);
+
+            return profile;
         }
 
         private class TicTacToe
@@ -498,7 +522,7 @@ namespace CirclesBot
                 EmbedBuilder builder = new EmbedBuilder();
                 builder.WithAuthor($"Inventory for {userToCheck.Username}", userToCheck.GetAvatarUrl());
 
-                GetProfile(userToCheck.Id, profile =>
+                ModifyProfile(userToCheck.Id, profile =>
                 {
                     foreach (var item in profile.Inventory)
                     {
@@ -525,7 +549,7 @@ namespace CirclesBot
                 EmbedBuilder builder = new EmbedBuilder();
                 builder.WithAuthor($"Profile for {userToCheck.Username}", userToCheck.GetAvatarUrl());
 
-                GetProfile(userToCheck.Id, (profile) =>
+                ModifyProfile(userToCheck.Id, (profile) =>
                 {
                     foreach (var field in profile.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic))
                     {
@@ -608,7 +632,7 @@ namespace CirclesBot
                         return;
                     }
 
-                    GetProfile(userToCheck.Id, profile => {
+                    ModifyProfile(userToCheck.Id, profile => {
                         profile.XP = xp.Value;
                     });
 
@@ -637,7 +661,7 @@ namespace CirclesBot
                         }
                     }
 
-                    GetProfile(s.Author.Id, (profile) =>
+                    ModifyProfile(s.Author.Id, (profile) =>
                     {
                         profile.MessagesSent++;
                         //50 to 200 xp per "unique" message

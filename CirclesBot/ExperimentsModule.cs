@@ -39,9 +39,15 @@ namespace CirclesBot
         {
             AddCMD("Convert hex to decimal", (sMsg, buffer) =>
             {
-                int val = Convert.ToInt32(buffer.GetRemaining(), 16);
-                sMsg.Channel.SendMessageAsync($"**{val}**");
-
+                try
+                {
+                    int val = Convert.ToInt32(buffer.GetRemaining(), 16);
+                    sMsg.Channel.SendMessageAsync($"**{val}**");
+                }
+                catch
+                {
+                    sMsg.Channel.SendMessageAsync("Couldn't pass text as hex.");
+                }
             }, ">hex");
 
             AddCMD("Make the bot say something", (sMsg, buffer) =>
