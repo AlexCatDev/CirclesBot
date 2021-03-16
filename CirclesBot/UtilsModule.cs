@@ -9,9 +9,9 @@ using System.Threading.Tasks;
 
 namespace CirclesBot
 {
-    public class ExperimentsModule : Module
+    public class UtilsModule : Module
     {
-        public override string Name => "Experiments Module";
+        public override string Name => "Utils Module";
 
         public override int Order => 3;
 
@@ -35,7 +35,7 @@ namespace CirclesBot
 
         private List<CallObject> activeCalls = new List<CallObject>();
 
-        public ExperimentsModule()
+        public UtilsModule()
         {
             AddCMD("Convert hex to decimal", (sMsg, buffer) =>
             {

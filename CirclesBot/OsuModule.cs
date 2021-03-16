@@ -653,7 +653,7 @@ namespace CirclesBot
 
             AddCMD("Shows your osu profile or someone elses in the respected gamemode", (sMsg, buffer) =>
             {
-                Enum.TryParse<OsuGamemode>(buffer.TriggerText.Remove(0, 1), ignoreCase: true, out OsuGamemode mode);
+                Enum.TryParse(buffer.TriggerText.Remove(0, 1), ignoreCase: true, out OsuGamemode mode);
 
                 bool isRipple = buffer.HasParameter("-ripple");
 
