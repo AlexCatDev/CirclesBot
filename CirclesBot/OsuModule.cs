@@ -140,10 +140,7 @@ namespace CirclesBot
             string username = "";
             if (sMsg.MentionedUsers.Count > 0)
             {
-                Program.GetModule<SocialModule>().ModifyProfile(sMsg.MentionedUsers.First().Id, profile =>
-                {
-                    username = profile.OsuUsername;
-                });
+                username = Program.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id).OsuUsername;
 
                 if (username == "")
                 {
@@ -152,15 +149,12 @@ namespace CirclesBot
                 }
             }
 
-            if (username == "")
+            if(username == "")
                 username = buffer.GetRemaining();
 
             if (username == "")
             {
-                Program.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
-                {
-                    username = profile.OsuUsername;
-                });
+                username = Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id).OsuUsername;
 
                 if (username == "")
                 {
@@ -170,6 +164,27 @@ namespace CirclesBot
             }
 
             return username;
+        }
+
+        /// <summary>
+        /// Attempts to parse beatmap url to a beatmap_id, if no url was present it will return 0. Will return null on error
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <returns></returns>
+        public ulong? ParseBeatmapUrl(SocketMessage sMsg, CommandBuffer buffer)
+        {
+            string url = buffer.GetParameter("https://osu.ppy.sh/");
+
+            if (url == "")
+                return 0;
+
+            if (ulong.TryParse(url.Split('/').Last(), out ulong beatmapID))
+                return beatmapID;
+            else
+            {
+                sMsg.Channel.SendMessageAsync("Error parsing beatmap url.");
+                return null;
+            }
         }
 
         public void RememberScores(ulong channelID, List<OsuScore> scores)
@@ -205,23 +220,12 @@ namespace CirclesBot
             {
                 var users = sMsg.Channel.GetUsersAsync().FlattenAsync().GetAwaiter().GetResult();
 
-                string beatmap = buffer.GetParameter("https://osu.ppy.sh/beatmapsets/");
-                ulong beatmapID = 0;
+                ulong? beatmapID = ParseBeatmapUrl(sMsg, buffer);
 
-                if (beatmap != "")
-                {
-                    try
-                    {
-                        beatmapID = ulong.Parse(beatmap.Split('/').Last());
-                    }
-                    catch
-                    {
-                        sMsg.Channel.SendMessageAsync("Error parsing beatmap url.");
-                        return;
-                    }
-                }
-                else
-                {
+                if (beatmapID == null)
+                    return;
+
+                if (beatmapID == 0) {
                     if (channelToScores.TryGetValue(sMsg.Channel.Id, out List<OsuScore> aScores) == false)
                     {
                         sMsg.Channel.SendMessageAsync("No beatmap found in conversation");
@@ -239,12 +243,12 @@ namespace CirclesBot
                     if (string.IsNullOrEmpty(workingOsuUser))
                         continue;
 
-                    var scores = banchoAPI.GetScores(workingOsuUser, beatmapID, 1);
+                    var scores = banchoAPI.GetScores(workingOsuUser, beatmapID.Value, 1);
 
                     if (scores.Count == 0)
                         continue;
 
-                    allScores.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID), scores.First(), beatmapID));
+                    allScores.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID.Value), scores.First(), beatmapID.Value));
                 }
 
                 if (allScores.Count == 0)
@@ -253,7 +257,22 @@ namespace CirclesBot
                     return;
                 }
 
-                allScores.Sort((x, y) => y.Score.CompareTo(x.Score));
+                bool sortByPP = buffer.HasParameter("-pp");
+                bool sortByAcc = buffer.HasParameter("-acc");
+
+                bool sortByLowestMisscount = buffer.HasParameter("-miss");
+
+                if (sortByPP)
+                    allScores.Sort((x, y) => y.PP.CompareTo(x.PP));
+
+                if(sortByAcc)
+                    allScores.Sort((x, y) => y.Accuracy.CompareTo(x.Accuracy));
+
+                if(sortByLowestMisscount)
+                    allScores.Sort((x, y) => y.CountMiss.CompareTo(x.CountMiss));
+
+                if (!sortByAcc || !sortByAcc || !sortByLowestMisscount)
+                    allScores.Sort((x, y) => y.Score.CompareTo(x.Score));
 
                 RememberScores(sMsg.Channel.Id, allScores);
 
@@ -266,13 +285,7 @@ namespace CirclesBot
             {
                 if (sMsg.Content.StartsWith("."))
                 {
-                    bool isLazy = false;
-                    Program.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
-                    {
-                        isLazy = profile.IsLazy;
-                    });
-
-                    if (isLazy == false)
+                    if (Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id).IsLazy == false)
                         return;
                 }
 
@@ -329,22 +342,21 @@ namespace CirclesBot
             AddCMD("Displays yours or someone elses scores on a specific map", (sMsg, buffer) =>
             {
                 bool ripple = buffer.HasParameter("-ripple");
-                string beatmap = buffer.GetParameter("https://osu.ppy.sh/beatmapsets/");
-                ulong beatmapSetID = 0;
-                ulong beatmapID = 0;
 
-                try
+                ulong? beatmapID = ParseBeatmapUrl(sMsg, buffer);
+
+                if (beatmapID == null)
                 {
-                    beatmapSetID = ulong.Parse(beatmap.Split("#osu/")[0]);
-                    beatmapID = ulong.Parse(beatmap.Split("#osu/")[1]);
+                    return;
                 }
-                catch
+                else if (beatmapID == 0)
                 {
-                    sMsg.Channel.SendMessageAsync("Error parsing beatmap url.");
+                    sMsg.Channel.SendMessageAsync("Please provide a beatmap url.");
                     return;
                 }
 
                 string userToCheck = DecipherOsuUsername(sMsg, buffer);
+
                 if (userToCheck == null)
                     return;
 
@@ -352,7 +364,7 @@ namespace CirclesBot
 
                 try
                 {
-                    List<BanchoAPI.BanchoScore> userPlays = banchoAPI.GetScores(userToCheck, beatmapID, 10);
+                    List<BanchoAPI.BanchoScore> userPlays = banchoAPI.GetScores(userToCheck, beatmapID.Value, 10);
 
                     if (userPlays.Count == 0)
                     {
@@ -364,7 +376,7 @@ namespace CirclesBot
 
                     foreach (var rup in userPlays)
                     {
-                        scores.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID), rup, beatmapID));
+                        scores.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID.Value), rup, beatmapID.Value));
                     }
 
                     RememberScores(sMsg.Channel.Id, scores);
@@ -503,24 +515,12 @@ namespace CirclesBot
 
                 accuracy = Math.Clamp(accuracy.Value, 0, 100);
 
-                string beatmap = buffer.GetParameter("https://osu.ppy.sh/beatmapsets/");
-                ulong beatmapSetID = 0;
-                ulong beatmapID = 0;
+                ulong? beatmapID = ParseBeatmapUrl(sMsg, buffer);
 
-                if (beatmap != "")
-                {
-                    try
-                    {
-                        beatmapSetID = ulong.Parse(beatmap.Split("#osu/")[0]);
-                        beatmapID = ulong.Parse(beatmap.Split("#osu/")[1]);
-                    }
-                    catch
-                    {
-                        sMsg.Channel.SendMessageAsync("Error parsing beatmap url.");
-                        return;
-                    }
-                }
-                else
+                if (beatmapID == null)
+                    return;
+
+                if (beatmapID == 0)
                 {
                     if (channelToScores.TryGetValue(sMsg.Channel.Id, out List<OsuScore> scores) == false)
                     {
@@ -553,21 +553,13 @@ namespace CirclesBot
                             mods = Mods.NM;
                     }
 
-                    string localBeatmap = BeatmapManager.GetBeatmap(beatmapID);
+                    string localBeatmap = BeatmapManager.GetBeatmap(beatmapID.Value);
 
                     var ez = EZPP.Calculate(localBeatmap, 0, 0, 0, 0, Mods.NM);
 
-                    //idk how this works, but it just does
-                    double estimatedCount100 = (ez.TotalHitObjects / 66.7) * (100.0 - accuracy.Value);
-
-                    int estimatedCount100Ceil = (int)Math.Ceiling(estimatedCount100);
-                    int estimatedCount100Floor = (int)Math.Floor(estimatedCount100);
-
                     string output = $"**+{mods.ToFriendlyString()}** on **{ez.SongName} [{ez.DifficultyName}]**\n";
 
-                    ez = EZPP.Calculate(localBeatmap, ez.MaxCombo, estimatedCount100Ceil, 0, 0, mods);
-                    output += $"**{ez.Accuracy.ToString("F2")}%** ▸ **{ez.PP.ToString("F2")}PP**\n";
-                    ez = EZPP.Calculate(localBeatmap, ez.MaxCombo, estimatedCount100Floor, 0, 0, mods);
+                    ez = EZPP.Calculate(localBeatmap, ez.MaxCombo, 0, 0, 0, mods, (float)accuracy.Value);
                     output += $"**{ez.Accuracy.ToString("F2")}%** ▸ **{ez.PP.ToString("F2")}PP**";
 
                     sMsg.Channel.SendMessageAsync(output);
@@ -584,13 +576,7 @@ namespace CirclesBot
             {
                 if (sMsg.Content.StartsWith(","))
                 {
-                    bool isLazy = false;
-                    Program.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
-                    {
-                        isLazy = profile.IsLazy;
-                    });
-
-                    if (isLazy == false)
+                    if(Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id).IsLazy == false)
                         return;
                 }
 

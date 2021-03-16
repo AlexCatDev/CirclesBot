@@ -52,6 +52,9 @@ namespace CirclesBot
         private static extern void ezpp_set_accuracy(IntPtr ez, int n100, int n50);
 
         [DllImport(LibraryName)]
+        private static extern void ezpp_set_accuracy_percent(IntPtr ez, float accuracy_percent);
+
+        [DllImport(LibraryName)]
         private static extern int ezpp_max_combo(IntPtr ez);
 
         [DllImport(LibraryName)]
@@ -81,13 +84,10 @@ namespace CirclesBot
         [DllImport(LibraryName)]
         private static extern float ezpp_timing_ms_per_beat(IntPtr ez, int i);
 
-        [DllImport(LibraryName)]
-        private static extern void ezpp_set_accuracy_percent(IntPtr ez, float accuracy_percent);
-
         private static IntPtr ezppInstance;
         private static object ezppLock = new object();
 
-        public static EZPPResult Calculate(string mapData, int maxCombo, int n100, int n50, int nMisses, Mods mods)
+        public static EZPPResult Calculate(string mapData, int maxCombo, int n100, int n50, int nMisses, Mods mods, float accuracy = -1)
         {
             lock (ezppLock)
             {
@@ -99,14 +99,17 @@ namespace CirclesBot
                 //give mods to ezpp
                 ezpp_set_mods(ezppInstance, (int)mods);
 
-                //give 100's and 50's to ezpp
-                ezpp_set_accuracy(ezppInstance, n100, n50);
-
                 //give misscount to ezpp
                 ezpp_set_nmiss(ezppInstance, nMisses);
 
                 //give max combo to ezpp
                 ezpp_set_combo(ezppInstance, maxCombo);
+
+                //Give accuracy to ezpp if it's over 0, otherwise set the n100 and n50
+                if (accuracy > 0)
+                    ezpp_set_accuracy_percent(ezppInstance, accuracy);
+                else
+                    ezpp_set_accuracy(ezppInstance, n100, n50);
 
                 //give a duplicate of map data to ezpp, so it can calculate above values ^^
                 ezpp_data_dup(ezppInstance, mapData, mapData.Length);
@@ -135,6 +138,8 @@ namespace CirclesBot
 
                 if (mods.HasFlag(Mods.DT))
                     result.BPM = result.BPM * 1.5f;
+                else if (mods.HasFlag(Mods.HT))
+                    result.BPM = result.BPM * 0.75f;
 
                 //Destroy ezpp
                 ezpp_free(ezppInstance);
