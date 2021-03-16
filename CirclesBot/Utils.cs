@@ -83,20 +83,21 @@ namespace CirclesBot
                 beatmapset += mapData[offset++];
             }
 
-            int result = 0;
-            if (int.TryParse(beatmapset, out result))
+            if (int.TryParse(beatmapset, out int result))
                 return result;
             else
                 return 0;
         }
 
-        public static double Benchmark(Action a)
+        public static void Benchmark(Action a, string name, LogLevel level = LogLevel.Info)
         {
             Stopwatch sw = Stopwatch.StartNew();
             a?.Invoke();
             sw.Stop();
             double time = ((double)sw.ElapsedTicks / Stopwatch.Frequency) * 1000.0;
-            return Math.Round(time, 2);
+
+            time = Math.Round(time, 2);
+            Logger.Log($"{name} took {time} milliseconds", level);
         }
 
         //Credits: https://github.com/raresica1234

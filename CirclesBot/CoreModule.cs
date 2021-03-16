@@ -20,7 +20,7 @@ namespace CirclesBot
     /// 3. Fix Pages.cs and PagesHandler.cs mess and make them the default for sending embeds for easier use
     /// 
     /// </summary>
-    class Program : Module
+    class CoreModule : Module
     {
         public const string XD =
             ":joy::joy::joy::joy::joy::joy::joy::joy::joy::joy::joy::joy::joy::joy::joy:\n"+
@@ -59,7 +59,7 @@ namespace CirclesBot
 
         public static ulong TotalCommandsHandled;
 
-        public static event EventHandler<double> OnSimulateWorld;
+        public static event EventHandler<double> OnUpdate;
 
         public static bool IgnoreMessages { get; private set; }
 
@@ -84,11 +84,164 @@ namespace CirclesBot
             return null;
         }
 
-        public override string Name => "Main Module";
+        static async Task Main(string[] args)
+        {
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+
+            if (!File.Exists(Config.Filename))
+            {
+                Logger.Log($"No config, please put your credentials into {Config.Filename}. Press enter when you have done that.");
+                File.WriteAllText(Config.Filename, JsonConvert.SerializeObject(new Config(), Formatting.Indented));
+                Console.ReadLine();
+            }
+
+            while (true)
+            {
+                try
+                {
+                    Logger.Log("Parsing config");
+                    Config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(Config.Filename));
+                    Config.Verify();
+                    Logger.Log("Parsed config", LogLevel.Success);
+                    break;
+                }
+                catch(Exception ex)
+                {
+                    Logger.Log($"Error when parsing config: {ex.Message}", LogLevel.Error);
+                    Logger.Log("Press enter to try again", LogLevel.Info);
+                    Console.ReadLine();
+                }
+            }
+
+            Logger.Log("Loading Modules", LogLevel.Info);
+
+            Utils.Benchmark(() =>
+            {
+                foreach (var type in System.Reflection.Assembly.GetExecutingAssembly().GetTypes())
+                {
+                    if (type.IsInterface || type.IsAbstract)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (type.IsAssignableTo(typeof(Module)))
+                        {
+                            Logger.Log($"Loading: {type.Name}");
+                            Module loadedModule = (Module)Activator.CreateInstance(type);
+                            LoadedModules.Add(loadedModule);
+                            Logger.Log($"Done", LogLevel.Success);
+                        }
+                    }
+                }
+
+                LoadedModules.Sort((x, y) => x.Order.CompareTo(y.Order));
+            }, "Modules");
+
+            Client.MessageReceived += Client_MessageReceived;
+            Client.Ready += Client_Ready;
+            Client.Disconnected += Client_Disconnected;
+
+            await Client.LoginAsync(TokenType.Bot, Config.DISCORD_API_KEY);
+            Logger.Log("Logging in...");
+            await Client.StartAsync();
+
+            Stopwatch updateWatch = new Stopwatch();
+            while (true)
+            {
+                double deltaTime = ((double)updateWatch.ElapsedTicks / Stopwatch.Frequency);
+
+                OnUpdate?.Invoke(null, deltaTime);
+
+                updateWatch.Restart();
+                Thread.Sleep(1);
+            }
+        }
+
+        private static Task Client_Disconnected(Exception s)
+        {
+            onlineWatch.Stop();
+            offlineWatch.Start();
+            Logger.Log($"[Bot Disconnected]\n{s.Message}", LogLevel.Error);
+            return Task.Delay(0);
+        }
+
+        private static Task Client_Ready()
+        {
+            onlineWatch.Start();
+            offlineWatch.Stop();
+            Logger.Log($"[Bot Connect]\nUser={Client.CurrentUser.Username}", LogLevel.Success);
+            Client.SetGameAsync(">help");
+            return Task.Delay(0);
+        }
+
+        private static Task Client_MessageReceived(SocketMessage s)
+        {
+            if (s.Author.IsBot)
+                return Task.Delay(0);
+
+            Logger.Log(s.Channel.Name + "->" + s.Author.Username + ": " + s.Content);
+
+            //This is here so i can more easily run instances of the same bot
+            if (s.Content.ToLower() == ">stop" && s.Author.Id == Config.BotOwnerID)
+            {
+                IgnoreMessages = true;
+
+                s.Channel.SendMessageAsync("I will no longer handle commands");
+            }
+
+            if (s.Content.ToLower() == ">start" && s.Author.Id == Config.BotOwnerID)
+            {
+                IgnoreMessages = false;
+
+                s.Channel.SendMessageAsync("I will handle commands again");
+            }
+
+            if (s.Content.ToLower() == ">die" && s.Author.Id == Config.BotOwnerID)
+            {
+                s.Channel.SendMessageAsync("ok i die").GetAwaiter().GetResult();
+                Client.LogoutAsync();
+                return Task.Delay(0);
+            }
+
+            if (IgnoreMessages)
+                return Task.Delay(0);
+
+            try
+            {
+                foreach (var module in LoadedModules)
+                {
+                    if (s is SocketUserMessage sMsg)
+                    {
+                        module.Commands.ForEach((command) => command.Handle(sMsg));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (Config.DMOwnerOnError)
+                {
+                    string error = $"An exception has been thrown when trying to handle a command!\n";
+                    error += $"User: **[{s.Author.Username}#{s.Author.Id}]** said: **[{s.Content}]**\n";
+                    error += $"[Exception Message]\n**{ex.Message}**\n";
+                    error += $"[Exception Stacktrace]\n{ex.StackTrace}";
+
+                    Client.GetUser(Config.BotOwnerID).SendMessageAsync(error);
+                }
+
+                Logger.Log($"An exception has been thrown when trying to handle a command!", LogLevel.Error);
+                Logger.Log($"User responsible: [{s.Author.Username}]@[{s.Author.Id}] What they wrote: [{s.Content}]\n", LogLevel.Info);
+                Logger.Log($"[Exception Message]\n{ex.Message}\n", LogLevel.Error);
+                Logger.Log($"[Exception Stacktrace]\n{ex.StackTrace}", LogLevel.Warning);
+            }
+            return Task.Delay(0);
+        }
+
+        public override string Name => "Core Module";
 
         public override int Order => 2;
 
-        public Program()
+        public CoreModule()
         {
             AddCMD("Enable a command", (sMsg, buffer) =>
             {
@@ -205,7 +358,7 @@ namespace CirclesBot
 
                         tempDesc += "\n";
 
-                        if(description.Length + tempDesc.Length < 2048)
+                        if (description.Length + tempDesc.Length < 2048)
                         {
                             description += tempDesc;
                             tempDesc = "";
@@ -223,163 +376,6 @@ namespace CirclesBot
 
                 sMsg.Channel.SendPages(commandPages);
             }, ">help");
-        }
-
-        static void Main(string[] args)
-        {
-            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-
-            if (!File.Exists(Config.Filename))
-            {
-                Logger.Log($"No config, please put your credentials into {Config.Filename}. Press enter when you have done that.");
-                File.WriteAllText(Config.Filename, JsonConvert.SerializeObject(new Config(), Formatting.Indented));
-                Console.ReadLine();
-            }
-
-            while (true)
-            {
-                try
-                {
-                    Logger.Log("Parsing config");
-                    Config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(Config.Filename));
-                    Config.Verify();
-                    Logger.Log("Parsed config", LogLevel.Success);
-                    break;
-                }
-                catch(Exception ex)
-                {
-                    Logger.Log($"Error when parsing config: {ex.Message}", LogLevel.Error);
-                    Logger.Log("Press enter to try again", LogLevel.Info);
-                    Console.ReadLine();
-                }
-            }
-
-            Logger.Log("Loading Modules", LogLevel.Info);
-
-            double time = Utils.Benchmark(() =>
-            {
-                foreach (var type in System.Reflection.Assembly.GetExecutingAssembly().GetTypes())
-                {
-                    if (type.IsInterface || type.IsAbstract)
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        if (type.IsAssignableTo(typeof(Module)))
-                        {
-                            Logger.Log($"Loading: {type.Name}");
-                            Module loadedModule = (Module)Activator.CreateInstance(type);
-                            LoadedModules.Add(loadedModule);
-                            Logger.Log($"Done", LogLevel.Success);
-                        }
-                    }
-                }
-
-                LoadedModules.Sort((x, y) => x.Order.CompareTo(y.Order));
-            });
-
-            Logger.Log($"Modules took {time} milliseconds to load");
-
-            Client.MessageReceived += (s) =>
-            {
-                if (s.Author.IsBot)
-                    return Task.Delay(0);
-
-                Logger.Log(s.Channel.Name + "->" + s.Author.Username + ": " + s.Content);
-
-                //This is here so i can more easily run instances of the same bot
-                if (s.Content.ToLower() == ">stop" && s.Author.Id == Config.BotOwnerID)
-                {
-                    IgnoreMessages = true;
-
-                    s.Channel.SendMessageAsync("I will no longer handle commands");
-                }
-
-                if (s.Content.ToLower() == ">start" && s.Author.Id == Config.BotOwnerID)
-                {
-                    IgnoreMessages = false;
-
-                    s.Channel.SendMessageAsync("I will handle commands again");
-                }
-
-                if (s.Content.ToLower() == ">die" && s.Author.Id == Config.BotOwnerID)
-                {
-                    s.Channel.SendMessageAsync("ok i die").GetAwaiter().GetResult();
-                    Client.LogoutAsync();
-                    return Task.Delay(0);
-                }
-
-                if (IgnoreMessages)
-                    return Task.Delay(0);
-                /*
-                //1% chance
-                if (Utils.GetRandomChance(1))
-                {
-                    s.Channel.SendMessageAsync(RandomQuirkyResponses[Utils.GetRandomNumber(0, RandomQuirkyResponses.Length - 1)]);
-                }
-                */
-                try
-                {
-                    foreach (var module in LoadedModules)
-                    {
-                        if (s is SocketUserMessage sMsg)
-                        {
-                            module.Commands.ForEach((command) => command.Handle(sMsg));
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (Config.DMOwnerOnError)
-                    {
-                        string error = $"An exception has been thrown when trying to handle a command!\n";
-                        error += $"User: **[{s.Author.Username}#{s.Author.Id}]** said: **[{s.Content}]**\n";
-                        error += $"[Exception Message]\n**{ex.Message}**\n";
-                        error += $"[Exception Stacktrace]\n{ex.StackTrace}";
-
-                        Client.GetUser(Config.BotOwnerID).SendMessageAsync(error);
-                    }
-
-                    Logger.Log($"An exception has been thrown when trying to handle a command!", LogLevel.Error);
-                    Logger.Log($"User responsible: [{s.Author.Username}]@[{s.Author.Id}] What they wrote: [{s.Content}]\n", LogLevel.Info);
-                    Logger.Log($"[Exception Message]\n{ex.Message}\n", LogLevel.Error);
-                    Logger.Log($"[Exception Stacktrace]\n{ex.StackTrace}", LogLevel.Warning);
-                }
-                return Task.Delay(0);
-            };
-
-            Client.Ready += () =>
-            {
-                onlineWatch.Start();
-                offlineWatch.Stop();
-                Logger.Log($"[Bot Connect]\nUser={Client.CurrentUser.Username}", LogLevel.Success);
-                Client.SetGameAsync(">help");
-                return Task.Delay(0);
-            };
-
-            Client.Disconnected += (s) =>
-            {
-                onlineWatch.Stop();
-                offlineWatch.Start();
-                Logger.Log($"[Bot Disconnected]\n{s.Message}", LogLevel.Error);
-                return Task.Delay(0);
-            };
-
-            Client.LoginAsync(TokenType.Bot, Config.DISCORD_API_KEY);
-            Logger.Log("Logging in...");
-            Client.StartAsync();
-
-            Stopwatch simulationWatch = new Stopwatch();
-            while (true)
-            {
-                double deltaTime = ((double)simulationWatch.ElapsedTicks / Stopwatch.Frequency);
-
-                OnSimulateWorld?.Invoke(null, deltaTime);
-
-                simulationWatch.Restart();
-                Thread.Sleep(1);
-            }
         }
     }
 }

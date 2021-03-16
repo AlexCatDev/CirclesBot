@@ -41,7 +41,7 @@ namespace CirclesBot
                 {
                     if (Cooldown > 0)
                     {
-                        var time = DateTime.Now - Program.GetModule<SocialModule>().GetProfile(userMsg.Author.Id).LastCommand;
+                        var time = DateTime.Now - CoreModule.GetModule<SocialModule>().GetProfile(userMsg.Author.Id).LastCommand;
 
                         if (time.TotalSeconds < Cooldown)
                         {
@@ -49,13 +49,13 @@ namespace CirclesBot
                             return;
                         }
 
-                        Program.GetModule<SocialModule>().ModifyProfile(userMsg.Author.Id, profile =>
+                        CoreModule.GetModule<SocialModule>().ModifyProfile(userMsg.Author.Id, profile =>
                         {
                             profile.LastCommand = DateTime.Now;
                         });
                     }
                     onActivate?.Invoke(userMsg, new CommandBuffer(args, trigger));
-                    Program.TotalCommandsHandled++;
+                    CoreModule.TotalCommandsHandled++;
                 }
                 else
                 {

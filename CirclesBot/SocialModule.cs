@@ -442,7 +442,7 @@ namespace CirclesBot
             return Task.Factory.StartNew(() =>
             {
                 int saveCounter = 0;
-                double i = Utils.Benchmark(() =>
+                Utils.Benchmark(() =>
                 {
                     foreach (var profile in profileCache)
                     {
@@ -453,16 +453,13 @@ namespace CirclesBot
                             saveCounter++;
                         }
                     }
-                });
-
-                if(saveCounter > 0)
-                    Logger.Log($"Saved {saveCounter} profiles took: {i} milliseconds", LogLevel.Info);
+                }, $"Saved {saveCounter} profiles");
             });
         }
 
         public SocialModule()
         {
-            Program.OnSimulateWorld += (s, e) =>
+            CoreModule.OnUpdate += (s, e) =>
             {
                 profileSaveTimer += e;
                 if (profileSaveTimer >= 10.0)
@@ -582,7 +579,7 @@ namespace CirclesBot
                     }
                 });
 
-                if (userToCheck.Id == Program.Config.BotOwnerID)
+                if (userToCheck.Id == CoreModule.Config.BotOwnerID)
                     builder.WithFooter($"Bot Owner");
 
                 sMsg.Channel.SendMessageAsync("", false, builder.Build());
@@ -600,7 +597,7 @@ namespace CirclesBot
                     return;
                 }
 
-                if (sMsg.Author.Id == Program.Config.BotOwnerID)
+                if (sMsg.Author.Id == CoreModule.Config.BotOwnerID)
                 {
                     File.WriteAllText($"{DiscordProfileDirectory}/{userToCheck.Id}", JsonConvert.SerializeObject(new DiscordProfile()));
                     sMsg.Channel.SendMessageAsync($"Wiped **{userToCheck.Username}** :ok_hand:");
@@ -625,7 +622,7 @@ namespace CirclesBot
                     return;
                 }
 
-                if (sMsg.Author.Id == Program.Config.BotOwnerID)
+                if (sMsg.Author.Id == CoreModule.Config.BotOwnerID)
                 {
                     if(xp.HasValue == false)
                     {
@@ -647,7 +644,7 @@ namespace CirclesBot
 
             ulong lastAuthorID = 0;
 
-            Program.Client.MessageReceived += (s) =>
+            CoreModule.Client.MessageReceived += (s) =>
             {
                 if (!s.Author.IsBot)
                 {
@@ -674,7 +671,7 @@ namespace CirclesBot
                             if(lvl == 98 && profile.Level == 99)
                             {
                                 profile.Inventory.Add(ItemCreator.Create99Skillcape());
-                                s.Channel.SendMessageAsync($"{s.Author.Mention}\n**Congratz on level 99!!! Now get a fucking life**\n{Program.XD}");
+                                s.Channel.SendMessageAsync($"{s.Author.Mention}\n**Congratz on level 99!!! Now get a fucking life**\n{CoreModule.XD}");
                             }
                         }
                     });

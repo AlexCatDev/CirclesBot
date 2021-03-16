@@ -33,9 +33,9 @@ namespace CirclesBot
 
         static Extensions()
         {
-            Program.Client.ReactionAdded += (s, e, x) =>
+            CoreModule.Client.ReactionAdded += (s, e, x) =>
             {
-                if (x.UserId != Program.Client.CurrentUser.Id)
+                if (x.UserId != CoreModule.Client.CurrentUser.Id)
                 {
                     if (activeReactionCollectors.TryGetValue(x.MessageId, out ReactionCollector action))
                     {
@@ -49,9 +49,9 @@ namespace CirclesBot
                 return Task.Delay(0);
             };
 
-            Program.Client.ReactionRemoved += (s, e, x) =>
+            CoreModule.Client.ReactionRemoved += (s, e, x) =>
             {
-                if (x.UserId != Program.Client.CurrentUser.Id)
+                if (x.UserId != CoreModule.Client.CurrentUser.Id)
                 {
                     if (activeReactionCollectors.TryGetValue(x.MessageId, out ReactionCollector action))
                     {

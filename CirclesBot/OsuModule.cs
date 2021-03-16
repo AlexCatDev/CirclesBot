@@ -25,7 +25,7 @@ namespace CirclesBot
         //Maps a discord channel id to a list of osu! scores (ulong: Discord channel id), (self explainatory)
         private Dictionary<ulong, List<OsuScore>> channelToScores = new Dictionary<ulong, List<OsuScore>>();
 
-        private BanchoAPI banchoAPI = new BanchoAPI(Program.Config.OSU_API_KEY);
+        private BanchoAPI banchoAPI = new BanchoAPI(CoreModule.Config.OSU_API_KEY);
 
         private EmbedBuilder CreateProfileEmbed(OsuProfile osuProfile, List<BanchoAPI.BanchoBestScore> topPlays)
         {
@@ -140,7 +140,7 @@ namespace CirclesBot
             string username = "";
             if (sMsg.MentionedUsers.Count > 0)
             {
-                username = Program.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id).OsuUsername;
+                username = CoreModule.GetModule<SocialModule>().GetProfile(sMsg.MentionedUsers.First().Id).OsuUsername;
 
                 if (username == "")
                 {
@@ -154,7 +154,7 @@ namespace CirclesBot
 
             if (username == "")
             {
-                username = Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id).OsuUsername;
+                username = CoreModule.GetModule<SocialModule>().GetProfile(sMsg.Author.Id).OsuUsername;
 
                 if (username == "")
                 {
@@ -199,7 +199,7 @@ namespace CirclesBot
         {
             AddCMD("Enable the use of '.' and ',' in place of >rs and >c", (sMsg, buffer) =>
             {
-                Program.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
+                CoreModule.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
                 {
                     profile.IsLazy = true;
                 });
@@ -209,7 +209,7 @@ namespace CirclesBot
 
             AddCMD("Disable '.' and ','", (sMsg, buffer) =>
             {
-                Program.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
+                CoreModule.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
                 {
                     profile.IsLazy = false;
                 });
@@ -238,7 +238,7 @@ namespace CirclesBot
                 List<OsuScore> allScores = new List<OsuScore>();
                 foreach (var user in users)
                 {
-                    string workingOsuUser = Program.GetModule<SocialModule>().GetProfile(user.Id).OsuUsername;
+                    string workingOsuUser = CoreModule.GetModule<SocialModule>().GetProfile(user.Id).OsuUsername;
 
                     if (string.IsNullOrEmpty(workingOsuUser))
                         continue;
@@ -264,14 +264,11 @@ namespace CirclesBot
 
                 if (sortByPP)
                     allScores.Sort((x, y) => y.PP.CompareTo(x.PP));
-
-                if(sortByAcc)
+                else if(sortByAcc)
                     allScores.Sort((x, y) => y.Accuracy.CompareTo(x.Accuracy));
-
-                if(sortByLowestMisscount)
-                    allScores.Sort((x, y) => y.CountMiss.CompareTo(x.CountMiss));
-
-                if (!sortByAcc || !sortByAcc || !sortByLowestMisscount)
+                else if(sortByLowestMisscount)
+                    allScores.Sort((x, y) => x.CountMiss.CompareTo(y.CountMiss));
+                else
                     allScores.Sort((x, y) => y.Score.CompareTo(x.Score));
 
                 RememberScores(sMsg.Channel.Id, allScores);
@@ -285,7 +282,7 @@ namespace CirclesBot
             {
                 if (sMsg.Content.StartsWith("."))
                 {
-                    if (Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id).IsLazy == false)
+                    if (CoreModule.GetModule<SocialModule>().GetProfile(sMsg.Author.Id).IsLazy == false)
                         return;
                 }
 
@@ -576,7 +573,7 @@ namespace CirclesBot
             {
                 if (sMsg.Content.StartsWith(","))
                 {
-                    if(Program.GetModule<SocialModule>().GetProfile(sMsg.Author.Id).IsLazy == false)
+                    if(CoreModule.GetModule<SocialModule>().GetProfile(sMsg.Author.Id).IsLazy == false)
                         return;
                 }
 
@@ -706,7 +703,7 @@ namespace CirclesBot
                 else
                 {
                     var user = users.First();
-                    Program.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
+                    CoreModule.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
                     {
                         profile.OsuUsername = user.Username;
                         profile.CountryFlag = user.Country;

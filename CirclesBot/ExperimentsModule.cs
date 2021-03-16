@@ -81,9 +81,9 @@ namespace CirclesBot
                 if (activeCall1 == null && activeCall2 == null)
                 {
                     EmbedBuilder builder = new EmbedBuilder();
-                    SocketGuild guildToCall = Program.Client.Guilds.ElementAt(Utils.GetRandomNumber(0, Program.Client.Guilds.Count - 1));
-                    builder.WithAuthor($"{sMsg.Author.Username} Is calling from {Program.Client.GetGuild(sMsg).Name}", $"{sMsg.Author.GetAvatarUrl()}");
-                    builder.WithThumbnailUrl($"{Program.Client.GetGuild(sMsg).IconUrl}");
+                    SocketGuild guildToCall = CoreModule.Client.Guilds.ElementAt(Utils.GetRandomNumber(0, CoreModule.Client.Guilds.Count - 1));
+                    builder.WithAuthor($"{sMsg.Author.Username} Is calling from {CoreModule.Client.GetGuild(sMsg).Name}", $"{sMsg.Author.GetAvatarUrl()}");
+                    builder.WithThumbnailUrl($"{CoreModule.Client.GetGuild(sMsg).IconUrl}");
                     builder.Description = $"With the following message: **{message}**\nDo you want to pick up??";
                     try
                     {
@@ -104,7 +104,7 @@ namespace CirclesBot
             }, ">call")
             { IsEnabled = false });
 
-            Program.Client.ReactionAdded += async (s, e, x) =>
+            CoreModule.Client.ReactionAdded += async (s, e, x) =>
             {
                 if (!x.User.Value.IsBot)
                 {
@@ -115,20 +115,20 @@ namespace CirclesBot
                         if (x.Emote.Name == new CallAcceptEmote().Name)
                         {
                             activeCall.CallAccepted = true;
-                            await (Program.Client.GetChannel(activeCall.Receiver) as IMessageChannel).SendMessageAsync("You have accepted the call now talk!");
-                            await (Program.Client.GetChannel(activeCall.Callee) as IMessageChannel).SendMessageAsync("The other party has accepted!");
+                            await (CoreModule.Client.GetChannel(activeCall.Receiver) as IMessageChannel).SendMessageAsync("You have accepted the call now talk!");
+                            await (CoreModule.Client.GetChannel(activeCall.Callee) as IMessageChannel).SendMessageAsync("The other party has accepted!");
                         }
                         else if (x.Emote.Name == new CallDenyEmote().Name)
                         {
                             activeCalls.Remove(activeCall);
-                            await (Program.Client.GetChannel(activeCall.Receiver) as IMessageChannel).SendMessageAsync("You have closed the call!");
-                            await (Program.Client.GetChannel(activeCall.Callee) as IMessageChannel).SendMessageAsync("The other party closed the call!");
+                            await (CoreModule.Client.GetChannel(activeCall.Receiver) as IMessageChannel).SendMessageAsync("You have closed the call!");
+                            await (CoreModule.Client.GetChannel(activeCall.Callee) as IMessageChannel).SendMessageAsync("The other party closed the call!");
                         }
                     }
                 }
             };
 
-            Program.Client.MessageReceived += (s) =>
+            CoreModule.Client.MessageReceived += (s) =>
             {
                 if (s.Author.IsBot)
                     return Task.Delay(0);
@@ -139,13 +139,13 @@ namespace CirclesBot
                 if (toSend != null)
                 {
                     if (toSend.CallAccepted)
-                        (Program.Client.GetChannel(toSend.Callee) as IMessageChannel).SendMessageAsync($":speech_balloon: **{s.Content}**");
+                        (CoreModule.Client.GetChannel(toSend.Callee) as IMessageChannel).SendMessageAsync($":speech_balloon: **{s.Content}**");
                 }
 
                 if (toReceive != null)
                 {
                     if (toReceive.CallAccepted)
-                        (Program.Client.GetChannel(toReceive.Receiver) as IMessageChannel).SendMessageAsync($":speech_balloon: **{s.Content}**");
+                        (CoreModule.Client.GetChannel(toReceive.Receiver) as IMessageChannel).SendMessageAsync($":speech_balloon: **{s.Content}**");
                 }
                 return Task.Delay(0);
             };
