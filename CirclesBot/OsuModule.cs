@@ -227,6 +227,13 @@ namespace CirclesBot
 
                 int? indexToCheck = buffer.GetInt();
 
+                bool sortByPP = buffer.HasParameter("-pp");
+                bool sortByAcc = buffer.HasParameter("-acc");
+
+                bool sortByLowestMisscount = buffer.HasParameter("-miss");
+
+                Mods mods = Utils.StringToMod(buffer.GetRemaining());
+
                 if (beatmapID == null)
                     return;
 
@@ -255,7 +262,18 @@ namespace CirclesBot
                     if (scores.Count == 0)
                         continue;
 
-                    allScores.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID.Value), scores.First(), beatmapID.Value));
+                    if (sortByPP)
+                        scores.Sort((x, y) => y.PP.Value.CompareTo(x.PP));
+                    else if (sortByAcc)
+                        scores.Sort((x, y) => y.Accuracy.CompareTo(x.Accuracy));
+                    else if (sortByLowestMisscount)
+                        scores.Sort((x, y) => x.CountMiss.CompareTo(y.CountMiss));
+
+                    if(mods != Mods.Null)
+                        scores.RemoveAll((s) => s.EnabledMods != mods);
+
+                    if(scores.Count > 0)
+                        allScores.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID.Value), scores.First(), beatmapID.Value));
                 }
 
                 if (allScores.Count == 0)
@@ -264,23 +282,35 @@ namespace CirclesBot
                     return;
                 }
 
-                bool sortByPP = buffer.HasParameter("-pp");
-                bool sortByAcc = buffer.HasParameter("-acc");
-
-                bool sortByLowestMisscount = buffer.HasParameter("-miss");
+                string sortedBy = "";
+                string withMods = mods == Mods.Null ? "" : $"With Mods {mods}";
 
                 if (sortByPP)
+                {
+                    sortedBy = "PP";
                     allScores.Sort((x, y) => y.PP.CompareTo(x.PP));
-                else if(sortByAcc)
+                }
+                else if (sortByAcc)
+                {
+                    sortedBy = "Accuracy";
                     allScores.Sort((x, y) => y.Accuracy.CompareTo(x.Accuracy));
-                else if(sortByLowestMisscount)
+                }
+                else if (sortByLowestMisscount)
+                {
+                    sortedBy = "Lowest Misscount";
                     allScores.Sort((x, y) => x.CountMiss.CompareTo(y.CountMiss));
+                }
                 else
+                {
+                    sortedBy = "Score";
                     allScores.Sort((x, y) => y.Score.CompareTo(x.Score));
+                }
 
                 RememberScores(sMsg.Channel.Id, allScores);
 
-                var pages = CreateScorePages(allScores, $"Server leaderboard on {allScores.First().SongName} [{allScores.First().DifficultyName}]", isLeaderboard: true);
+                var pages = CreateScorePages(allScores, $"Server leaderboard on {allScores.First().SongName} [{allScores.First().DifficultyName}] Sorted by {sortedBy} {withMods}",
+                    isLeaderboard: true);
+
                 PagesHandler.SendPages(sMsg.Channel, pages);
             }, ">leaderboard", ">lb");
 

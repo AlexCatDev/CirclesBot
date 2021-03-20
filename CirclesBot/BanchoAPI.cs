@@ -160,6 +160,8 @@ namespace CirclesBot
             public float? PP;
             [JsonProperty("replay_available")]
             public int ReplayAvailable;
+
+            public double Accuracy => ((Count300 * 300.0) + (Count100 * 100.0) + (Count50 * 50.0)) / ((Count300 + Count100 + Count50 + CountMiss) * 300);
         }
 
         public class BanchoBestScore
