@@ -59,7 +59,8 @@ namespace CirclesBot
 
         public static ulong TotalCommandsHandled;
 
-        public static event EventHandler<double> OnUpdate;
+        public static event Action<double> OnUpdate;
+        public static event Action<SocketMessage> OnMessageReceived;
 
         public static bool IgnoreMessages { get; private set; }
 
@@ -151,7 +152,7 @@ namespace CirclesBot
             {
                 double deltaTime = ((double)updateWatch.ElapsedTicks / Stopwatch.Frequency);
 
-                OnUpdate?.Invoke(null, deltaTime);
+                OnUpdate?.Invoke(deltaTime);
 
                 updateWatch.Restart();
                 Thread.Sleep(1);
@@ -183,14 +184,14 @@ namespace CirclesBot
             Logger.Log(s.Channel.Name + "->" + s.Author.Username + ": " + s.Content);
 
             //This is here so i can more easily run instances of the same bot
-            if (s.Content.ToLower() == ">stop" && s.Author.Id == Config.BotOwnerID)
+            if (s.Content.ToLower() == ">ignore" && s.Author.Id == Config.BotOwnerID)
             {
                 IgnoreMessages = true;
 
                 s.Channel.SendMessageAsync("I will no longer handle commands");
             }
 
-            if (s.Content.ToLower() == ">start" && s.Author.Id == Config.BotOwnerID)
+            if (s.Content.ToLower() == ">listen" && s.Author.Id == Config.BotOwnerID)
             {
                 IgnoreMessages = false;
 
@@ -234,6 +235,9 @@ namespace CirclesBot
                 Logger.Log($"[Exception Message]\n{ex.Message}\n", LogLevel.Error);
                 Logger.Log($"[Exception Stacktrace]\n{ex.StackTrace}", LogLevel.Warning);
             }
+
+            OnMessageReceived?.Invoke(s);
+
             return Task.Delay(0);
         }
 

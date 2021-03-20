@@ -75,6 +75,9 @@ namespace CirclesBot
 
                 currentScoreIndex = scores.IndexOf(score);
 
+                if (isLastScore)
+                    currentScoreIndex++;
+
                 embedBuilder.WithFooter($"Displaying {currentScoreIndex}/{scores.Count} Scores");
 
                 pages.AddEmbed(embedBuilder.Build());
@@ -222,6 +225,8 @@ namespace CirclesBot
 
                 ulong? beatmapID = ParseBeatmapUrl(sMsg, buffer);
 
+                int? indexToCheck = buffer.GetInt();
+
                 if (beatmapID == null)
                     return;
 
@@ -231,8 +236,10 @@ namespace CirclesBot
                         sMsg.Channel.SendMessageAsync("No beatmap found in conversation");
                         return;
                     }
+                    if (indexToCheck == null)
+                        indexToCheck = 0;
 
-                    beatmapID = aScores.First().BeatmapID;
+                    beatmapID = aScores[(indexToCheck.Value - 1).Clamp(0, aScores.Count - 1)].BeatmapID;
                 }
 
                 List<OsuScore> allScores = new List<OsuScore>();

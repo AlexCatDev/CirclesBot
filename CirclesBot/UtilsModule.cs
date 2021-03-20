@@ -128,11 +128,8 @@ namespace CirclesBot
                 }
             };
 
-            CoreModule.Client.MessageReceived += (s) =>
+            CoreModule.OnMessageReceived += (s) =>
             {
-                if (s.Author.IsBot)
-                    return Task.Delay(0);
-
                 CallObject toSend = activeCalls.Find((o) => o.Receiver == s.Channel.Id);
                 CallObject toReceive = activeCalls.Find((o) => o.Callee == s.Channel.Id);
 
@@ -147,7 +144,6 @@ namespace CirclesBot
                     if (toReceive.CallAccepted)
                         (CoreModule.Client.GetChannel(toReceive.Receiver) as IMessageChannel).SendMessageAsync($":speech_balloon: **{s.Content}**");
                 }
-                return Task.Delay(0);
             };
         }
     }

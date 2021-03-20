@@ -12,7 +12,7 @@ namespace CirclesBot
     {
         public override string Name => "Games Module";
 
-        public override int Order => 2;
+        public override int Order => 3;
         private class TicTacToe
         {
             enum Piece
@@ -306,23 +306,18 @@ namespace CirclesBot
 
             }, ">ttt");
 
-            CoreModule.Client.MessageReceived += (s) =>
+            CoreModule.OnMessageReceived += (s) =>
             {
-                if (!s.Author.IsBot)
+                for (int i = 0; i < ticTacToeGames.Count; i++)
                 {
-                    for (int i = 0; i < ticTacToeGames.Count; i++)
-                    {
-                        ticTacToeGames[i].ParseMessage(s);
+                    ticTacToeGames[i].ParseMessage(s);
 
-                        if (ticTacToeGames[i].IsGameDone)
-                        {
-                            ticTacToeGames.RemoveAt(i);
-                            Console.WriteLine("A game of tictactoe has been done.");
-                        }
+                    if (ticTacToeGames[i].IsGameDone)
+                    {
+                        ticTacToeGames.RemoveAt(i);
+                        Console.WriteLine("A game of tictactoe has been done.");
                     }
                 }
-
-                return Task.Delay(0);
             };
         }
     }

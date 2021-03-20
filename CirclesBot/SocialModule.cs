@@ -201,7 +201,7 @@ namespace CirclesBot
 
         public SocialModule()
         {
-            CoreModule.OnUpdate += (s, e) =>
+            CoreModule.OnUpdate += (e) =>
             {
                 profileSaveTimer += e;
                 if (profileSaveTimer >= 10.0)
@@ -354,29 +354,24 @@ namespace CirclesBot
 
             ulong lastAuthorID = 0;
 
-            CoreModule.Client.MessageReceived += (s) =>
+            CoreModule.OnMessageReceived += (s) =>
             {
-                if (!s.Author.IsBot)
+                ModifyProfile(s.Author.Id, (profile) =>
                 {
-                    ModifyProfile(s.Author.Id, (profile) =>
-                    {
-                        profile.MessagesSent++;
+                    profile.MessagesSent++;
                         //50 to 200 xp per "unique" message
                         if (lastAuthorID != s.Author.Id)
+                    {
+                        lastAuthorID = s.Author.Id;
+                        int lvl = profile.Level;
+                        profile.XP += (ulong)Utils.GetRandomNumber(50, 200);
+                        if (lvl == 98 && profile.Level == 99)
                         {
-                            lastAuthorID = s.Author.Id;
-                            int lvl = profile.Level;
-                            profile.XP += (ulong)Utils.GetRandomNumber(50, 200);
-                            if(lvl == 98 && profile.Level == 99)
-                            {
-                                profile.Inventory.Add(ItemCreator.Create99Skillcape());
-                                s.Channel.SendMessageAsync($"{s.Author.Mention}\n**Congratz on level 99!!! Now get a fucking life**\n{CoreModule.XD}");
-                            }
+                            profile.Inventory.Add(ItemCreator.Create99Skillcape());
+                            s.Channel.SendMessageAsync($"{s.Author.Mention}\n**Congratz on level 99!!! Now get a fucking life**\n{CoreModule.XD}");
                         }
-                    });
-                }
-
-                return Task.Delay(0);
+                    }
+                });
             };
         }
     }
