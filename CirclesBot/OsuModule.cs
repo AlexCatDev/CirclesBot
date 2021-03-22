@@ -232,6 +232,8 @@ namespace CirclesBot
 
                 bool sortByLowestMisscount = buffer.HasParameter("-miss");
 
+                bool sortByCombo = buffer.HasParameter("-combo");
+
                 Mods mods = Utils.StringToMod(buffer.GetRemaining());
 
                 if (beatmapID == null)
@@ -257,7 +259,7 @@ namespace CirclesBot
                     if (string.IsNullOrEmpty(workingOsuUser))
                         continue;
 
-                    var scores = banchoAPI.GetScores(workingOsuUser, beatmapID.Value, 1);
+                    var scores = banchoAPI.GetScores(workingOsuUser, beatmapID.Value, 100);
 
                     if (scores.Count == 0)
                         continue;
@@ -268,9 +270,11 @@ namespace CirclesBot
                         scores.Sort((x, y) => y.Accuracy.CompareTo(x.Accuracy));
                     else if (sortByLowestMisscount)
                         scores.Sort((x, y) => x.CountMiss.CompareTo(y.CountMiss));
+                    else if(sortByCombo)
+                        scores.Sort((x, y) => y.MaxCombo.CompareTo(x.MaxCombo));
 
-                    if(mods != Mods.Null)
-                        scores.RemoveAll((s) => s.EnabledMods != mods);
+                    if (mods != Mods.Null)
+                        scores.RemoveAll((s) => s.EnabledMods.HasFlag(mods) == false);
 
                     if(scores.Count > 0)
                         allScores.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID.Value), scores.First(), beatmapID.Value));
@@ -283,7 +287,7 @@ namespace CirclesBot
                 }
 
                 string sortedBy = "";
-                string withMods = mods == Mods.Null ? "" : $"With Mods {mods}";
+                string withMods = mods == Mods.Null ? "" : $"With Mods {Utils.ToFriendlyString(mods)}";
 
                 if (sortByPP)
                 {
@@ -299,6 +303,11 @@ namespace CirclesBot
                 {
                     sortedBy = "Lowest Misscount";
                     allScores.Sort((x, y) => x.CountMiss.CompareTo(y.CountMiss));
+                }
+                else if (sortByCombo)
+                {
+                    sortedBy = "Highest Combo";
+                    allScores.Sort((x, y) => y.MaxCombo.CompareTo(x.MaxCombo));
                 }
                 else
                 {

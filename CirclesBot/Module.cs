@@ -9,6 +9,7 @@ namespace CirclesBot
 {
     public class Command
     {
+        public string HelpText { get; private set; }
         public string Description { get; private set; }
         public List<string> Triggers { get; private set; }
 
