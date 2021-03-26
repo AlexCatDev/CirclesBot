@@ -161,8 +161,8 @@ namespace CirclesBot
 
                 if (username == "")
                 {
-                    sMsg.Channel.SendMessageAsync("Please mention someone, use their osu! username or link your own osu! account with **>osuset <username>**");
-                    return null;
+                    sMsg.Channel.SendMessageAsync("You don't have a linked osu! account **>link <username>**");
+                    return sMsg.Author.Username;
                 }
             }
 
@@ -724,7 +724,7 @@ namespace CirclesBot
 
                     EmbedBuilder embedBuilder = CreateProfileEmbed(new OsuProfile(user), topPlays);
 
-                    embedBuilder.WithAuthor($"{mode} Profile For {userToCheck}", BanchoAPI.GetFlagImageUrl(user.Country));
+                    embedBuilder.WithAuthor($"{mode} Profile For {user.Username}", BanchoAPI.GetFlagImageUrl(user.Country));
 
                     embedBuilder.WithThumbnailUrl(BanchoAPI.GetProfileImageUrl(user.ID.ToString()));
 
@@ -757,7 +757,7 @@ namespace CirclesBot
 
                     sMsg.Channel.SendMessageAsync("Your osu user has been set to: " + user.Username);
                 }
-            }, ">osuset", ">set");
+            }, ">osuset", ">link");
 
             Commands.Add(new Command("Use this command if a map is out of sync with bots version", (sMsg, buffer) =>
             {

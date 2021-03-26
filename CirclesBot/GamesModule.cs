@@ -13,7 +13,28 @@ namespace CirclesBot
         public override string Name => "Games Module";
 
         public override int Order => 3;
-        private class TicTacToe
+
+        public abstract class Game
+        {
+            public ISocketMessageChannel channel;
+            public SocketUser[] Players;
+
+            public bool IsGameDone { get; protected set; }
+
+            public void Setup(ISocketMessageChannel channel, params SocketUser[] players)
+            {
+                this.channel = channel;
+                this.Players = players;
+
+                OnStart();
+            }
+
+            public abstract void OnStart();
+
+            public abstract void OnMessageReceived(SocketMessage sMsg);
+        }
+
+        private class TicTacToe : Game
         {
             enum Piece
             {
@@ -22,20 +43,16 @@ namespace CirclesBot
                 O
             }
 
-            public SocketUser Player1, Player2;
-
             private SocketUser currentPlayer;
 
-            public bool IsGameDone { get; set; } = false;
-
             private Piece[,] board = new Piece[3, 3];
+
+            private bool saidInvalidInput;
 
             private Piece getPiece(int i)
             {
                 return board[i % 3, i / 3];
             }
-
-            private ISocketMessageChannel channel;
 
             private string emote(Piece piece)
             {
@@ -190,8 +207,8 @@ namespace CirclesBot
             {
                 EmbedBuilder builder = new EmbedBuilder();
 
-                builder.WithAuthor($"Tic Tac Toe Game Between {Player1.Username} and {Player2.Username}", Player1.GetAvatarUrl());
-                builder.WithThumbnailUrl(Player2.GetAvatarUrl());
+                builder.WithAuthor($"Tic Tac Toe: {Players[0].Username} vs {Players[1].Username}", Players[0].GetAvatarUrl());
+                builder.WithThumbnailUrl(Players[1].GetAvatarUrl());
 
                 builder.Description += $":black_large_square: :one: :two: :three:\n";
                 builder.Description += $":regional_indicator_a: {emote(getPiece(0))} {emote(getPiece(1))} {emote(getPiece(2))}\n";
@@ -203,21 +220,7 @@ namespace CirclesBot
                 channel.SendMessageAsync("", false, builder.Build());
             }
 
-            public TicTacToe(SocketUser player1, SocketUser player2, ISocketMessageChannel channel)
-            {
-                this.channel = channel;
-                Player1 = player1;
-                Player2 = player2;
-
-                if (Utils.GetRandomNumber(1, 2) == 1)
-                    currentPlayer = Player1;
-                else
-                    currentPlayer = player2;
-
-                sendGameEmbed();
-            }
-
-            public void ParseMessage(SocketMessage sMsg)
+            public override void OnMessageReceived(SocketMessage sMsg)
             {
                 if (sMsg.Author.Id == currentPlayer.Id && sMsg.Channel.Id == channel.Id)
                 {
@@ -228,8 +231,12 @@ namespace CirclesBot
 
                     if (xIndex == -1 || yIndex == -1)
                     {
-                        sMsg.Channel.SendMessageAsync("invalid input");
-                        return;
+                        if (saidInvalidInput == false)
+                        {
+                            saidInvalidInput = true;
+                            sMsg.Channel.SendMessageAsync("invalid input");
+                            return;
+                        }
                     }
 
                     if (board[xIndex, yIndex] != Piece.Empty)
@@ -238,13 +245,15 @@ namespace CirclesBot
                         return;
                     }
 
-                    if (currentPlayer == Player1)
+                    saidInvalidInput = false;
+
+                    if (currentPlayer == Players[0])
                     {
                         board[xIndex, yIndex] = Piece.X;
                         if (checkForWin(Piece.X))
                             IsGameDone = true;
                         else
-                            currentPlayer = Player2;
+                            currentPlayer = Players[1];
                     }
                     else
                     {
@@ -252,7 +261,7 @@ namespace CirclesBot
                         if (checkForWin(Piece.O))
                             IsGameDone = true;
                         else
-                            currentPlayer = Player1;
+                            currentPlayer = Players[0];
                     }
 
                     sendGameEmbed();
@@ -267,9 +276,19 @@ namespace CirclesBot
                     }
                 }
             }
+
+            public override void OnStart()
+            {
+                if (Utils.GetRandomNumber(1, 2) == 1)
+                    currentPlayer = Players[0];
+                else
+                    currentPlayer = Players[1];
+
+                sendGameEmbed();
+            }
         }
 
-        private List<TicTacToe> ticTacToeGames = new List<TicTacToe>();
+        private List<Game> activeGames = new List<Game>();
 
         public GamesModule()
         {
@@ -279,9 +298,9 @@ namespace CirclesBot
                 {
                     var userToDuel = sMsg.MentionedUsers.First();
 
-                    if (ticTacToeGames.Any((a) => a.Player1.Id == userToDuel.Id || a.Player1.Id == sMsg.Author.Id || a.Player2.Id == userToDuel.Id || a.Player2.Id == sMsg.Author.Id))
+                    if (activeGames.Any((a) => a.Players.Contains(userToDuel)))
                     {
-                        await sMsg.Channel.SendMessageAsync("You or that person is already in a duel");
+                        await sMsg.Channel.SendMessageAsync("You or that person is already in a game");
                         return;
                     }
 
@@ -290,15 +309,17 @@ namespace CirclesBot
                     {
                         if (userID == userToDuel.Id)
                         {
-                            if (ticTacToeGames.Any((a) => a.Player1.Id == userToDuel.Id || a.Player1.Id == sMsg.Author.Id || a.Player2.Id == userToDuel.Id || a.Player2.Id == sMsg.Author.Id))
+                            if (activeGames.Any((a) => a.Players.Contains(userToDuel)))
                             {
-                                sMsg.Channel.SendMessageAsync("You or that person is already in a duel");
+                                sMsg.Channel.SendMessageAsync("You or that person is already in a game");
                                 msg.DeleteReactionCollector();
                                 return;
                             }
 
                             sMsg.Channel.SendMessageAsync("You have accepted the duel!");
-                            ticTacToeGames.Add(new TicTacToe(sMsg.Author, userToDuel, sMsg.Channel));
+                            TicTacToe game = new TicTacToe();
+                            game.Setup(sMsg.Channel, userToDuel, sMsg.Author);
+                            activeGames.Add(game);
                         }
 
                     }, new Emoji("⚔️"));
@@ -308,13 +329,13 @@ namespace CirclesBot
 
             CoreModule.OnMessageReceived += (s) =>
             {
-                for (int i = 0; i < ticTacToeGames.Count; i++)
+                for (int i = 0; i < activeGames.Count; i++)
                 {
-                    ticTacToeGames[i].ParseMessage(s);
+                    activeGames[i].OnMessageReceived(s);
 
-                    if (ticTacToeGames[i].IsGameDone)
+                    if (activeGames[i].IsGameDone)
                     {
-                        ticTacToeGames.RemoveAt(i);
+                        activeGames.RemoveAt(i);
                         Console.WriteLine("A game of tictactoe has been done.");
                     }
                 }
