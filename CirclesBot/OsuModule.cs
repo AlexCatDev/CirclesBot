@@ -148,7 +148,7 @@ namespace CirclesBot
                 if (username == "")
                 {
                     sMsg.Channel.SendMessageAsync("That person has not linked their osu! account.");
-                    return null;
+                    return sMsg.MentionedUsers.First().Username;
                 }
             }
 

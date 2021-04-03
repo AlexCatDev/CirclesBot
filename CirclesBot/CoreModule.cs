@@ -181,7 +181,7 @@ namespace CirclesBot
             if (s.Author.IsBot)
                 return Task.Delay(0);
 
-            Logger.Log(s.Channel.Name + "->" + s.Author.Username + ": " + s.Content);
+            Logger.Log($"[{(s.Channel as SocketGuildChannel).Guild.Name}]" + s.Channel.Name + "->" + s.Author.Username + ": " + s.Content);
 
             //This is here so i can more easily run instances of the same bot
             if (s.Content.ToLower() == ">ignore" && s.Author.Id == Config.BotOwnerID)

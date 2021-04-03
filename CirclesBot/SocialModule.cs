@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -184,18 +185,22 @@ namespace CirclesBot
             return Task.Factory.StartNew(() =>
             {
                 int saveCounter = 0;
-                Utils.Benchmark(() =>
+                Stopwatch sw = Stopwatch.StartNew();
+
+                foreach (var profile in profileCache)
                 {
-                    foreach (var profile in profileCache)
+                    if (profile.Value.WasModified)
                     {
-                        if (profile.Value.WasModified)
-                        {
-                            profile.Value.WasModified = false;
-                            File.WriteAllText($"{DiscordProfileDirectory}/{profile.Key}", JsonConvert.SerializeObject(profile.Value));
-                            saveCounter++;
-                        }
+                        profile.Value.WasModified = false;
+                        File.WriteAllText($"{DiscordProfileDirectory}/{profile.Key}", JsonConvert.SerializeObject(profile.Value));
+                        saveCounter++;
                     }
-                }, $"Saved {saveCounter} profiles");
+                }
+
+                sw.Stop();
+
+                if (saveCounter > 0)
+                    Logger.Log($"Saved {saveCounter} profiles in {sw.ElapsedMilliseconds} MS", LogLevel.Info);
             });
         }
 
