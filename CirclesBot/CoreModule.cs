@@ -52,8 +52,7 @@ namespace CirclesBot
 
         public static List<Module> LoadedModules = new List<Module>();
 
-        private static Stopwatch onlineWatch = new Stopwatch();
-        private static Stopwatch offlineWatch = new Stopwatch();
+        private static Stopwatch runTimeWatch = new Stopwatch();
 
         public static Config Config { get; private set; }
 
@@ -66,12 +65,20 @@ namespace CirclesBot
 
         public static int GetMemberCount()
         {
-            int total = 0;
-            foreach (var guild in Client.Guilds)
+            try
             {
-                total += guild.MemberCount;
+                int total = 0;
+                foreach (var guild in Client.Guilds)
+                {
+                    total += guild.MemberCount;
+                }
+                return total;
             }
-            return total;
+            catch
+            {
+                Logger.Log("Couldnt execute GetMemberCount()");
+                return -1;
+            }
         }
 
         public static T GetModule<T>() where T : Module
@@ -161,16 +168,13 @@ namespace CirclesBot
 
         private static Task Client_Disconnected(Exception s)
         {
-            onlineWatch.Stop();
-            offlineWatch.Start();
             Logger.Log($"[Bot Disconnected]\n{s.Message}", LogLevel.Error);
             return Task.Delay(0);
         }
 
         private static Task Client_Ready()
         {
-            onlineWatch.Start();
-            offlineWatch.Stop();
+            runTimeWatch.Start();
             Logger.Log($"[Bot Connect]\nUser={Client.CurrentUser.Username}", LogLevel.Success);
             Client.SetGameAsync(">help");
             return Task.Delay(0);
@@ -318,8 +322,7 @@ namespace CirclesBot
                 desc += $"GC: **0:** `{GC.CollectionCount(0)}` **1:** `{GC.CollectionCount(1)}` **2:** `{GC.CollectionCount(2)}`\n";
                 desc += $"Oppai Version: **{EZPP.GetVersion()}**\n";
                 desc += $"Ping: **{Client.Latency} MS**\n";
-                desc += $"Online-Time: **{Utils.FormatTime(onlineWatch.Elapsed, ago: false)}**\n";
-                desc += $"Offline-Time: **{Utils.FormatTime(offlineWatch.Elapsed, ago: false)}**\n";
+                desc += $"Run-Time: **{Utils.FormatTime(runTimeWatch.Elapsed, ago: false)}**\n";
                 desc += $"Serving: **{Client.Guilds.Count} Guilds And {GetMemberCount()} Members**\n";
                 desc += $"Commands Handled: **{TotalCommandsHandled}**\n";
                 desc += $"Bancho API Calls: **{BanchoAPI.TotalAPICalls}**\n";
