@@ -131,6 +131,9 @@ namespace CirclesBot
 
         private ConcurrentDictionary<ulong, DiscordProfile> profileCache = new ConcurrentDictionary<ulong, DiscordProfile>();
 
+        //Key channel ID. Value: Author id, for mapping author to channel
+        private Dictionary<ulong, ulong> channelToLastAuthor = new Dictionary<ulong, ulong>();
+
         public void ModifyProfile(ulong discordID, Action<DiscordProfile> modifyAction)
         {
             DiscordProfile profile = null;
@@ -357,24 +360,33 @@ namespace CirclesBot
                 }
             }, ">xp");
 
-            ulong lastAuthorID = 0;
-
             CoreModule.OnMessageReceived += (s) =>
             {
                 ModifyProfile(s.Author.Id, (profile) =>
                 {
                     profile.MessagesSent++;
-                        //50 to 200 xp per "unique" message
-                        if (lastAuthorID != s.Author.Id)
+
+                    if (channelToLastAuthor.TryGetValue(s.Channel.Id, out ulong authorID))
                     {
-                        lastAuthorID = s.Author.Id;
-                        int lvl = profile.Level;
-                        profile.XP += (ulong)Utils.GetRandomNumber(50, 200);
-                        if (lvl == 98 && profile.Level == 99)
+                        //Only grant xp if another user has written since this message
+                        if(authorID != s.Author.Id)
                         {
-                            profile.Inventory.Add(ItemCreator.Create99Skillcape());
-                            s.Channel.SendMessageAsync($"{s.Author.Mention}\n**Congratz on level 99!!! Now get a fucking life**\n{CoreModule.XD}");
+                            //update author id to this users id
+                            channelToLastAuthor[s.Channel.Id] = s.Author.Id;
+
+                            int lvl = profile.Level;
+                            profile.XP += (ulong)Utils.GetRandomNumber(50, 200);
+                            if (lvl == 98 && profile.Level == 99)
+                            {
+                                profile.Inventory.Add(ItemCreator.Create99Skillcape());
+                                s.Channel.SendMessageAsync($"{s.Author.Mention}\n**Congratz on level 99!!! Now get a fucking life**\n{CoreModule.XD}");
+                            }
                         }
+                    }
+                    else
+                    {
+                        //If no key, then it's first message in this channel since bot started, idk just add and dont grant xp
+                        channelToLastAuthor.Add(s.Channel.Id, s.Author.Id);
                     }
                 });
             };
