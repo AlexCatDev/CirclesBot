@@ -52,8 +52,14 @@ namespace CirclesBot
 
             AddCMD("Make the bot say something", (sMsg, buffer) =>
             {
+                if (sMsg.MentionedRoles.Count > 0 || sMsg.MentionedUsers.Count > 0)
+                {
+                    sMsg.Channel.SendMessageAsync("no");
+                    return;
+                }
+
                 string msg = sMsg.Content.Remove(0, 4);
-                if (msg.Contains("@everyone"))
+                if (msg.Contains("@everyone") || msg.Contains("@here"))
                     sMsg.Channel.SendMessageAsync($"no");
                 else
                     sMsg.Channel.SendMessageAsync($"{msg}");

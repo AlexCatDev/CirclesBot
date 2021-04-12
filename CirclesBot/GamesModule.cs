@@ -117,6 +117,7 @@ namespace CirclesBot
                 return true;
             }
 
+            //lol
             public (int, int) getIndex(string text)
             {
                 string[] args = text.ToLower().Split(' ');
@@ -193,6 +194,45 @@ namespace CirclesBot
                             xIndex = 2;
                             yIndex = 2;
                             break;
+
+                        case "1a":
+                            xIndex = 0;
+                            yIndex = 0;
+                            break;
+                        case "2a":
+                            xIndex = 1;
+                            yIndex = 0;
+                            break;
+                        case "3a":
+                            xIndex = 2;
+                            yIndex = 0;
+                            break;
+                        case "1b":
+                            xIndex = 0;
+                            yIndex = 1;
+                            break;
+                        case "2b":
+                            xIndex = 1;
+                            yIndex = 1;
+                            break;
+                        case "3b":
+                            xIndex = 2;
+                            yIndex = 1;
+                            break;
+
+                        case "1c":
+                            xIndex = 0;
+                            yIndex = 2;
+                            break;
+                        case "2c":
+                            xIndex = 1;
+                            yIndex = 2;
+                            break;
+                        case "3c":
+                            xIndex = 2;
+                            yIndex = 2;
+                            break;
+
                         case "middle":
                             xIndex = 1;
                             yIndex = 1;
