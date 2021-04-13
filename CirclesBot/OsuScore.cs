@@ -49,6 +49,7 @@ namespace CirclesBot
 
         public string SongName { get; private set; }
         public string DifficultyName { get; private set; }
+        public string ArtistName { get; private set; }
 
         public OsuScore(string beatmap, BanchoAPI.BanchoScore banchoPlay, ulong beatmapID)
         {
@@ -155,6 +156,7 @@ namespace CirclesBot
 
             SongName = ezpp.SongName;
             DifficultyName = ezpp.DifficultyName;
+            ArtistName = ezpp.ArtistName;
         }
     }
 }

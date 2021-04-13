@@ -115,7 +115,7 @@ namespace CirclesBot
                     tempDesc += $"**{leader} {score.Username} +{score.EnabledMods.ToFriendlyString()}** [{score.StarRating:F2}★]\n";
                 }
                 else
-                    tempDesc += $"**{count}.** [**{score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]\n";
+                    tempDesc += $"**{count}.** [**{score.ArtistName} - {score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]\n";
 
                 tempDesc += $"▸ {Utils.GetEmoteForRankLetter(score.RankingLetter)} ▸ **{score.PP.ToString("F2")}PP**{placementText}{isFCInfo} ▸ {score.Accuracy.ToString("F2")}%\n";
                 tempDesc += $"▸ {score.Score} ▸ x{score.MaxCombo}/{score.MapMaxCombo} ▸ [{score.Count300}/{score.Count100}/{score.Count50}/{score.CountMiss}]\n";

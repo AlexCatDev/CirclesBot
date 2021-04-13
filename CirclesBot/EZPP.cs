@@ -64,6 +64,9 @@ namespace CirclesBot
         private static extern IntPtr ezpp_title(IntPtr ez);
 
         [DllImport(LibraryName)]
+        private static extern IntPtr ezpp_artist(IntPtr ez);
+
+        [DllImport(LibraryName)]
         private static extern IntPtr oppai_version_str(IntPtr ez);
 
         [DllImport(LibraryName)]
@@ -128,6 +131,8 @@ namespace CirclesBot
                 result.DifficultyName = ConvertUnsafeCString(ezpp_version(ezppInstance));
 
                 result.SongName = ConvertUnsafeCString(ezpp_title(ezppInstance));
+
+                result.ArtistName = ConvertUnsafeCString(ezpp_artist(ezppInstance));
 
                 result.AR = ezpp_ar(ezppInstance);
                 result.CS = ezpp_cs(ezppInstance);
@@ -198,5 +203,6 @@ namespace CirclesBot
         public int TotalHitObjects;
 
         public string SongName;
+        public string ArtistName;
     }
 }
