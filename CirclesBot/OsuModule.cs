@@ -57,7 +57,7 @@ namespace CirclesBot
         {
             EmbedBuilder embedBuilder = new EmbedBuilder();
             Pages pages = new Pages();
-
+            
             int count = 0;
             string description = "";
 
@@ -119,7 +119,7 @@ namespace CirclesBot
 
                 tempDesc += $"▸ {Utils.GetEmoteForRankLetter(score.RankingLetter)} ▸ **{score.PP.ToString("F2")}PP**{placementText}{isFCInfo} ▸ {score.Accuracy.ToString("F2")}%\n";
                 tempDesc += $"▸ {score.Score} ▸ x{score.MaxCombo}/{score.MapMaxCombo} ▸ [{score.Count300}/{score.Count100}/{score.Count50}/{score.CountMiss}]\n";
-                tempDesc += $"▸ **AR:** {score.AR.ToString("F1")} **OD:** {score.OD.ToString("F1")} **HP:** {score.HP.ToString("F1")} **CS:** {score.CS.ToString("F1")} ▸ **BPM:** {score.BPM.ToString("F0")}\n";
+                tempDesc += $"▸ **CS:** {score.CS.ToString("F1")} **OD:** {score.OD.ToString("F1")} **AR:** {score.AR.ToString("F1")} **HP:** {score.HP.ToString("F1")} ▸ **BPM:** {score.BPM.ToString("F0")}\n";
 
                 if (score.IsPass == false)
                     tempDesc += $"▸ **Map Completion:** {score.CompletionPercentage.ToString("F2")}%\n";
