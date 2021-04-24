@@ -48,7 +48,7 @@ namespace CirclesBot
                 ":(", ":)", ":D", ":-)", ":-(", "D:", ";(", ";)", ":o", ":O", ">:O", ":c", "c:", "<3", "</3", ":^)"
         };
 
-        public static DiscordSocketClient Client = new DiscordSocketClient(new DiscordSocketConfig() { AlwaysDownloadUsers = true, ConnectionTimeout = -1 });
+        public static DiscordSocketClient Client = new DiscordSocketClient(new DiscordSocketConfig() { AlwaysDownloadUsers = true });
 
         public static List<Module> LoadedModules = new List<Module>();
 
@@ -180,6 +180,25 @@ namespace CirclesBot
             return Task.Delay(0);
         }
 
+        private static void sanitize(SocketMessage sMsg, bool removeRoleMentions = true)
+        {
+            var content = sMsg.Content;
+
+            content = content.Replace("@everyone", "everyone");
+            content = content.Replace("@here", "here");
+
+            if (removeRoleMentions)
+            {
+                foreach (var cancer in sMsg.MentionedRoles)
+                {
+                    content = content.Replace(cancer.Mention, "");
+                }
+            }
+
+            //Gay fuck off cancer api i have to hack it to set my value due to private property nigger
+            typeof(SocketMessage).GetProperty("Content").SetValue(sMsg, content);
+        }
+
         private static Task Client_MessageReceived(SocketMessage s)
         {
             if (s.Author.IsBot)
@@ -218,6 +237,8 @@ namespace CirclesBot
                 {
                     if (s is SocketUserMessage sMsg)
                     {
+                        //fuck off why do i even need to do this?
+                        sanitize(sMsg);
                         module.Commands.ForEach((command) => command.Handle(sMsg));
                     }
                 }

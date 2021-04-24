@@ -84,6 +84,7 @@ namespace CirclesBot
         public ulong MessagesSent = 0;
         public List<Item> Inventory = new List<Item>();
         public List<Badge> Badges = new List<Badge>();
+        public List<int> Codes = new List<int>();
         public DateTime LastCommand;
         public string OsuUsername = "";
         public string CountryFlag = "";
@@ -325,6 +326,29 @@ namespace CirclesBot
                     sMsg.Channel.SendMessageAsync("no");
                 }
             }, ">wipe");
+
+            AddCMD("Save code ;)", (sMsg, buffer) =>
+            {
+                var code = buffer.GetInt();
+                if (code.HasValue)
+                {
+                    ModifyProfile(sMsg.Author.Id, (profile) => {
+                        if (profile.Codes.Contains(code.Value))
+                        {
+                            sMsg.Channel.SendMessageAsync("you already have this");
+                        }
+                        else
+                        {
+                            profile.Codes.Add(code.Value);
+                            sMsg.Channel.SendMessageAsync("**;)**");
+                        }
+                    });
+                }
+                else
+                {
+                    sMsg.Channel.SendMessageAsync("Not a valid code");
+                }
+            }, ">s");
 
             AddCMD("Set your xp", (sMsg, buffer) =>
             {
