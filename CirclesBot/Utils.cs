@@ -6,14 +6,66 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Management;
 using System.Net;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 
 namespace CirclesBot
 {
     public static class Utils
     {
+        private static PerformanceCounter cpuCounter;
+        public static double CPUFrequency { get; private set; }
+        public static string CPUName { get; private set; }
+
+        static Utils()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                cpuCounter = new PerformanceCounter("Processor Information", "% Processor Performance", "_Total");
+                using (ManagementClass managementClass = new ManagementClass("Win32_Processor"))
+                {
+                    foreach (ManagementObject objMO in managementClass.GetInstances())
+                    {
+                        CPUFrequency = Convert.ToDouble(objMO["MaxClockSpeed"]);
+                        CPUName = Convert.ToString(objMO["Name"]);
+                    }
+                }
+            }
+        }
+
+        public static string GetCPUInfo()
+        {
+            string output = string.Empty;
+
+            if (cpuCounter is not null)
+            {
+                double cpuValue = 0;
+
+                Utils.Benchmark(() =>
+                {
+                    while (cpuValue == 0)
+                    {
+#pragma warning disable CA1416 // Validate platform compatibility
+                        cpuValue = cpuCounter.NextValue();
+#pragma warning restore CA1416 // Validate platform compatibility
+                    }
+                }, "Query CPU", LogLevel.Info);
+
+                double turboSpeed = ((CPUFrequency / 1000) * cpuValue) / 100;
+
+                output += $"CPU: **{CPUName}**\n" +
+                    $"CPU Frequency: **{turboSpeed:F2}GHz**\n";
+            }
+
+            output += $"CPU Cores: **{Environment.ProcessorCount}**\n";
+
+            return output;
+        }
+
         private static Random rng = new Random();
 
         public static int GetRandomNumber(int min, int max)

@@ -63,8 +63,9 @@ namespace CirclesBot
 
             void CompileEmbed(bool isLastScore, OsuScore score, OsuScore firstScore)
             {
-                embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(
-                    Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(firstScore.BeatmapID)).ToString()));
+                string beatmapSetID = Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(firstScore.BeatmapID)).ToString();
+
+                embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(beatmapSetID).ToString());
 
                 embedBuilder.WithDescription(description);
                 embedBuilder.WithAuthor(authorText, BanchoAPI.GetProfileImageUrl(firstScore.UserID.ToString()));

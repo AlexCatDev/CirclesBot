@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Management;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -337,7 +338,9 @@ namespace CirclesBot
 
                 desc += $"Runtime: **{runtimeVer}**\n";
                 desc += $"OS: **{RuntimeInformation.OSDescription} {RuntimeInformation.ProcessArchitecture}**\n";
-                desc += $"CPU Cores: **{Environment.ProcessorCount}**\n";
+
+                desc += Utils.GetCPUInfo();
+
                 desc += $"Ram Usage: **{(Process.GetCurrentProcess().PrivateMemorySize64 / 1048576.0).ToString("F")} MB**\n";
                 desc += $"CPU Time: **{Utils.FormatTime(Process.GetCurrentProcess().TotalProcessorTime, ago: false)}**\n";
                 desc += $"GC: **0:** `{GC.CollectionCount(0)}` **1:** `{GC.CollectionCount(1)}` **2:** `{GC.CollectionCount(2)}`\n";
