@@ -166,6 +166,20 @@ namespace CirclesBot
 
         private unsafe static string ConvertUnsafeCString(IntPtr ptr)
         {
+            byte* rawPointer = (byte*)ptr.ToPointer();
+            if (rawPointer == null) return "";
+
+            StringBuilder stringBuilder = new StringBuilder();
+
+            while(*rawPointer != '\0')
+            {
+                stringBuilder.Append((char)*rawPointer);
+                ++rawPointer;
+            }
+
+            return stringBuilder.ToString();
+            
+            /*
             void* rawPointer = ptr.ToPointer();
             if (rawPointer == null) return "";
 
@@ -181,6 +195,7 @@ namespace CirclesBot
             }
 
             return b.ToString();
+            */
         }
     }
 

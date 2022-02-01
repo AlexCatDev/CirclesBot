@@ -177,7 +177,7 @@ namespace CirclesBot
         {
             runTimeWatch.Start();
             Logger.Log($"[Bot Connect]\nUser={Client.CurrentUser.Username}", LogLevel.Success);
-            Client.SetGameAsync(">help");
+            Client.SetGameAsync(".help");
             return Task.Delay(0);
         }
 
@@ -196,7 +196,6 @@ namespace CirclesBot
                 }
             }
 
-            //Gay fuck off cancer api i have to hack it to set my value due to private property nigger
             typeof(SocketMessage).GetProperty("Content").SetValue(sMsg, content);
         }
 
@@ -205,24 +204,43 @@ namespace CirclesBot
             if (s.Author.IsBot)
                 return Task.Delay(0);
 
-            Logger.Log($"[{(s.Channel as SocketGuildChannel).Guild.Name}]" + s.Channel.Name + "->" + s.Author.Username + ": " + s.Content);
+            sanitize(s);
+
+            if(s.Channel is SocketGuildChannel guildChannel)
+                Logger.Log($"[{guildChannel.Guild.Name}]" + s.Channel.Name + "->" + s.Author.Username + ": " + s.Content);
+
+            if(s.Content.ToLower().StartsWith(".logs ") && s.Author.Id == Config.BotOwnerID)
+            {
+                string id = s.Content.ToLower().Remove(0, 6);
+                ulong guildID = ulong.Parse(id);
+                var logs = Client.GetGuild(guildID).GetAuditLogsAsync(10).FlattenAsync().GetAwaiter().GetResult();
+
+                string msgLogs = "";
+
+                foreach (var item in logs)
+                {
+                    msgLogs += $"{item.User.Username} -> {item.Action} : {item.Data?.ToString() ?? "null"} **[{item.CreatedAt}]**\n";
+                }
+
+                s.Channel.SendMessageAsync(msgLogs);
+            }
 
             //This is here so i can more easily run instances of the same bot
-            if (s.Content.ToLower() == ">ignore" && s.Author.Id == Config.BotOwnerID)
+            if (s.Content.ToLower() == ".ignore" && s.Author.Id == Config.BotOwnerID)
             {
                 IgnoreMessages = true;
 
                 s.Channel.SendMessageAsync("I will no longer handle commands");
             }
 
-            if (s.Content.ToLower() == ">listen" && s.Author.Id == Config.BotOwnerID)
+            if (s.Content.ToLower() == ".listen" && s.Author.Id == Config.BotOwnerID)
             {
                 IgnoreMessages = false;
 
                 s.Channel.SendMessageAsync("I will handle commands again");
             }
 
-            if (s.Content.ToLower() == ">die" && s.Author.Id == Config.BotOwnerID)
+            if (s.Content.ToLower() == ".die" && s.Author.Id == Config.BotOwnerID)
             {
                 s.Channel.SendMessageAsync("ok i die").GetAwaiter().GetResult();
                 Client.LogoutAsync();
@@ -237,11 +255,7 @@ namespace CirclesBot
                 foreach (var module in LoadedModules)
                 {
                     if (s is SocketUserMessage sMsg)
-                    {
-                        //fuck off why do i even need to do this?
-                        sanitize(sMsg);
                         module.Commands.ForEach((command) => command.Handle(sMsg));
-                    }
                 }
             }
             catch (Exception ex)
@@ -293,13 +307,32 @@ namespace CirclesBot
                     }
                     sMsg.Channel.SendMessageAsync($"{commandToEnable} no such command found");
                 }
-            }, ">enable");
+            }, ".enable");
+
+            AddCMD("Enable a command", (sMsg, buffer) =>
+            {
+                EmbedBuilder embedBuilder = new EmbedBuilder();
+                embedBuilder.Title = "Spider";
+                string description = "";
+
+                description += "Claims #1\n";
+                description += "Likes #1\n";
+                description += "**9000** <:kakera:888490123388403762>";
+
+                embedBuilder.Description = description;
+
+                embedBuilder.Color = new Color(0, 0, 255);
+
+                embedBuilder.ImageUrl = "https://cdn.discordapp.com/attachments/846519580126216233/888489091421831188/IMG_20210831_003940.jpg";
+
+                sMsg.Channel.SendMessageAsync(embed: embedBuilder.Build());
+            }, ".waifu");
 
             AddCMD("Disable a command", (sMsg, buffer) =>
             {
                 string commandToDisable = buffer.GetRemaining();
 
-                if (commandToDisable == ">disable" || commandToDisable == ">enable")
+                if (commandToDisable == ".disable" || commandToDisable == ".enable")
                     return;
 
                 if (sMsg.Author.Id == Config.BotOwnerID)
@@ -316,14 +349,14 @@ namespace CirclesBot
                             }
                         }
                     }
-                    sMsg.Channel.SendMessageAsync($"{commandToDisable} no such command found");
+                    sMsg.Channel.SendMessageAsync($"`{commandToDisable}` no such command found");
                 }
-            }, ">disable");
+            }, ".disable");
 
             AddCMD("Sends the url for the source code hosted on github", (sMsg, buffer) =>
             {
                 sMsg.Channel.SendMessageAsync($"**Here is the source code for the bot:** {Config.GithubURL}");
-            }, ">github", ">source", ">code");
+            }, ".github", ".source", ".code");
 
             AddCMD("Shows bot info", (sMsg, buffer) =>
             {
@@ -355,7 +388,7 @@ namespace CirclesBot
                 embed.WithDescription(desc);
                 embed.WithColor(Color.Blue);
                 sMsg.Channel.SendMessageAsync("", false, embed.Build());
-            }, ">info");
+            }, ".info");
 
             AddCMD("Shows this embed", (sMsg, buffer) =>
             {
@@ -406,7 +439,7 @@ namespace CirclesBot
                     CompileEmbed();
 
                 sMsg.Channel.SendPages(commandPages);
-            }, ">help");
+            }, ".help");
         }
     }
 }

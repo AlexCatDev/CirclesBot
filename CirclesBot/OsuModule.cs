@@ -2,8 +2,10 @@
 using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace CirclesBot
 {
@@ -199,6 +201,80 @@ namespace CirclesBot
                 channelToScores.Add(channelID, scores);
         }
 
+        class TrackStorage
+        {
+            Dictionary<ulong, BanchoAPI.BanchoBestScore> prevTopPlays = null;
+
+            public List<ulong> Channels { get; set; } = new List<ulong>();
+
+            public string Username { get; set; }
+
+            public void Update(OsuModule osuModule)
+            {
+                try
+                {
+                    List<BanchoAPI.BanchoBestScore> topPlays = osuModule.banchoAPI.GetBestPlays(Username, 100);
+                    Logger.Log($"Polled {topPlays.Count} top plays from {Username}", LogLevel.Info);
+
+                    if (topPlays.Count == 0)
+                        return;
+
+                    if (prevTopPlays == null)
+                    {
+                        prevTopPlays = new();
+
+                        foreach (var item in topPlays)
+                        {
+                            prevTopPlays.Add(item.ScoreID, item);
+                        }
+
+                        return;
+                    }
+
+                    List<BanchoAPI.BanchoBestScore> diff = new();
+
+                    foreach (var item in topPlays)
+                    {
+                        if (!prevTopPlays.ContainsKey(item.ScoreID))
+                        {
+                            prevTopPlays.Add(item.ScoreID, item);
+                            diff.Add(item);
+                        }
+                    }
+
+                    if (diff.Count() == 0)
+                        return;
+
+                    List<OsuScore> scores = new List<OsuScore>();
+
+                    foreach (var rup in diff)
+                    {
+                        OsuScore score = new OsuScore(BeatmapManager.GetBeatmap(rup.BeatmapID), rup);
+
+                        scores.Add(score);
+                    }
+
+                    for (int i = 0; i < Channels.Count; i++)
+                    {
+                        var channel = (CoreModule.Client.GetChannel(Channels[i]) as ISocketMessageChannel);
+
+                        osuModule.RememberScores(channel.Id, scores);
+
+                        Pages pages = osuModule.CreateScorePages(scores, $"New {OsuGamemode.Standard} top play from {Username}");
+
+                        PagesHandler.SendPages(channel, pages);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log($"Exception when updating tracking for <{Username}>");
+                    Logger.Log(ex.StackTrace, LogLevel.Error);
+                }
+            }
+        }
+
+        Dictionary<string, TrackStorage> trackedUsers = Utils.Load<Dictionary<string, TrackStorage>>("TrackedUsers");
+
         public OsuModule()
         {
             AddCMD("Enable the use of '.' and ',' in place of >rs and >c", (sMsg, buffer) =>
@@ -209,7 +285,7 @@ namespace CirclesBot
                 });
 
                 sMsg.Channel.SendMessageAsync("You can now use lazy commands.");
-            }, ">iamlazy");
+            }, ".iamlazy");
 
             AddCMD("Disable '.' and ','", (sMsg, buffer) =>
             {
@@ -218,7 +294,7 @@ namespace CirclesBot
                     profile.IsLazy = false;
                 });
                 sMsg.Channel.SendMessageAsync("You can now __no longer__ use lazy commands.");
-            }, ">iamnotlazy");
+            }, ".iamnotlazy");
 
             AddCMD("Diplays server leaderboard for map", (sMsg, buffer) =>
             {
@@ -316,18 +392,110 @@ namespace CirclesBot
                     allScores.Sort((x, y) => y.Score.CompareTo(x.Score));
                 }
 
+                if(indexToCheck.HasValue == false)
                 RememberScores(sMsg.Channel.Id, allScores);
 
                 var pages = CreateScorePages(allScores, $"Server leaderboard on {allScores.First().SongName} [{allScores.First().DifficultyName}] Sorted by {sortedBy} {withMods}",
                     isLeaderboard: true);
 
                 PagesHandler.SendPages(sMsg.Channel, pages);
-            }, ">leaderboard", ">lb");
+            }, ".leaderboard", ".lb");
+
+            new Thread(() =>
+            {
+                while (true)
+                {
+                    Thread.Sleep(1);
+                    if (CoreModule.Client.ConnectionState != ConnectionState.Connected)
+                        continue;
+
+                    for (int i = 0; i < trackedUsers.Count; i++)
+                    {
+                        var user = trackedUsers.ElementAt(i);
+
+                        user.Value.Update(this);
+                        Thread.Sleep(1000);
+                    }
+                }
+            }).Start();
+
+            Commands.Add(new Command("Track your or someone elses top scores for osu! standard", (sMsg, buffer) =>
+            {
+                if (sMsg.Author.Id != CoreModule.Config.BotOwnerID)
+                {
+                    if (!(sMsg.Author as SocketGuildUser).GuildPermissions.Administrator)
+                    {
+                        sMsg.Channel.SendMessageAsync("This command requires admin perms.");
+                        return;
+                    }
+                }
+
+                bool delete = buffer.HasParameter("-d");
+
+                bool list = buffer.HasParameter("-l");
+
+                if (list)
+                {
+                    StringBuilder builder = new StringBuilder();
+                    builder.Append($"**Tracked users in this channel:**\n");
+                    for (int i = 0; i < trackedUsers.Count; i++)
+                    {
+                        var t = trackedUsers.ElementAt(i);
+                        for (int k = 0; k < t.Value.Channels.Count; k++)
+                        {
+                            if(t.Value.Channels[k] == sMsg.Channel.Id)
+                            {
+                                builder.Append($"`{t.Key}`\n");
+                            }
+                        }
+                    }
+                    sMsg.Channel.SendMessageAsync(builder.ToString());
+                    return;
+                }
+
+                string userToCheck = DecipherOsuUsername(sMsg, buffer).ToLower();
+
+                if (userToCheck == null)
+                {
+                    sMsg.Channel.SendMessageAsync("I could not find someone to track based on your input");
+                    return;
+                }
+
+                if (!trackedUsers.ContainsKey(userToCheck))
+                    trackedUsers.Add(userToCheck, new TrackStorage() { Username = userToCheck });
+
+                if (trackedUsers[userToCheck].Channels.Contains(sMsg.Channel.Id))
+                {
+                    if (delete)
+                    {
+                        trackedUsers[userToCheck].Channels.Remove(sMsg.Channel.Id);
+                        sMsg.Channel.SendMessageAsync($"Removed {userToCheck} tracking from this channel.");
+
+                        if (trackedUsers[userToCheck].Channels.Count == 0)
+                            trackedUsers.Remove(userToCheck);
+
+                        Utils.Save(trackedUsers, "TrackedUsers");
+                    }
+                    else
+                        sMsg.Channel.SendMessageAsync($"Already tracking top plays for {userToCheck} in this channel.");
+
+                    return;
+                }else if (delete)
+                {
+                    sMsg.Channel.SendMessageAsync($"{userToCheck} is not tracked in this channel...?");
+                    return;
+                }
+
+                trackedUsers[userToCheck].Channels.Add(sMsg.Channel.Id);
+                Utils.Save(trackedUsers, "TrackedUsers");
+
+                sMsg.Channel.SendMessageAsync($"Now tracking top plays for `{userToCheck}` in <{sMsg.Channel.Name}>");
+            }, ".track"));
 
             //Optimized
             AddCMD("Display recent scores for you or someone else", (sMsg, buffer) =>
             {
-                if (sMsg.Content.StartsWith("."))
+                if (sMsg.Content.Equals("."))
                 {
                     if (CoreModule.GetModule<SocialModule>().GetProfile(sMsg.Author.Id).IsLazy == false)
                         return;
@@ -345,6 +513,7 @@ namespace CirclesBot
                     mode = OsuGamemode.Catch;
 
                 bool showList = buffer.HasParameter("-l");
+                bool isRTCircles = buffer.HasParameter("-rt");
                 string userToCheck = DecipherOsuUsername(sMsg, buffer);
 
                 if (userToCheck == null)
@@ -354,25 +523,51 @@ namespace CirclesBot
 
                 try
                 {
-                    List<BanchoAPI.BanchoRecentScore> recentUserPlays = banchoAPI.GetRecentPlays(userToCheck, showList ? 10 : 1, mode);
-
-                    if (recentUserPlays.Count == 0)
+                    List<BanchoAPI.BanchoRecentScore> recentUserPlays = null;
+                    if (isRTCircles == false)
                     {
-                        sMsg.Channel.SendMessageAsync($"**{userToCheck} doesn't have any recent plays!** <:sadChamp:593405356864962560>");
-                        return;
+                        recentUserPlays = banchoAPI.GetRecentPlays(userToCheck, showList ? 10 : 1, mode);
+
+                        if (recentUserPlays.Count == 0)
+                        {
+                            sMsg.Channel.SendMessageAsync($"**{userToCheck}** does not have any recent plays!");
+                            return;
+                        }
                     }
 
                     List<OsuScore> scores = new List<OsuScore>();
 
-                    foreach (var rup in recentUserPlays)
+                    if (isRTCircles)
                     {
-                        OsuScore score = new OsuScore(BeatmapManager.GetBeatmap(rup.BeatmapID), rup);
-                        scores.Add(score);
+                        string score = File.ReadAllText(@"C:\Users\user\Desktop\CSharp\RTCircles\RTCircles\bin\Debug\net6.0\score.txt");
+
+                        string[] @params = score.Split('|');
+
+                        int c300 = int.Parse(@params[0]);
+                        int c100 = int.Parse(@params[1]);
+                        int c50 = int.Parse(@params[2]);
+                        int cMiss = int.Parse(@params[3]);
+                        int scor = int.Parse(@params[4]);
+                        int mod = int.Parse(@params[5]);
+                        int maxCombo = int.Parse(@params[6]);
+                        string rankLetter = @params[7];
+                        ulong beatmapID = ulong.Parse(@params[8]);
+
+                        scores.Add(new OsuScore((Mods)mod, scor, c300, c100, c50, cMiss, maxCombo, rankLetter, BeatmapManager.GetBeatmap(beatmapID), beatmapID));
+                    }
+                    else
+                    {
+                        foreach (var rup in recentUserPlays)
+                        {
+                            OsuScore score = new OsuScore(BeatmapManager.GetBeatmap(rup.BeatmapID), rup);
+
+                            scores.Add(score);
+                        }
                     }
 
                     RememberScores(sMsg.Channel.Id, scores);
 
-                    Pages pages = CreateScorePages(scores, $"Recent {mode} plays for {userToCheck}");
+                    Pages pages = CreateScorePages(scores, $"Recent {mode} plays for {scores[0].Username ?? userToCheck}");
 
                     PagesHandler.SendPages(sMsg.Channel, pages);
                 }
@@ -381,7 +576,7 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">rs", ">recent", ".");
+            }, ".rs", ".recent", ".");
 
             AddCMD("Displays yours or someone elses scores on a specific map", (sMsg, buffer) =>
             {
@@ -412,7 +607,7 @@ namespace CirclesBot
 
                     if (userPlays.Count == 0)
                     {
-                        sMsg.Channel.SendMessageAsync($"**{userToCheck} doesn't have any plays on this map!** <:sadChamp:593405356864962560>");
+                        sMsg.Channel.SendMessageAsync($"**{userToCheck}** does not have any plays on this map!");
                         return;
                     }
 
@@ -434,7 +629,7 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">scores", ">sc");
+            }, ".scores", ".sc");
 
             AddCMD("Displays yours or someone elses scores", (sMsg, buffer) =>
             {
@@ -535,7 +730,7 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">top", ">osutop");
+            }, ".top", ".osutop");
 
             AddCMD("Displays the PP for an fc with a given accuracy and mods", (sMsg, buffer) =>
             {
@@ -614,7 +809,7 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">pp", ">fc");
+            }, ".pp", ".fc");
 
             AddCMD("Compare yours or someone elses scores", (sMsg, buffer) =>
             {
@@ -673,7 +868,7 @@ namespace CirclesBot
 
                     if (userPlays.Count == 0)
                     {
-                        sMsg.Channel.SendMessageAsync($"**{userToCheck} doesn't have any plays on this map** <:sadChamp:593405356864962560>");
+                        sMsg.Channel.SendMessageAsync($"**{userToCheck}** does not have any plays on this map!");
                         return;
                     }
 
@@ -696,7 +891,7 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">c", ">compare", ",");
+            }, ".c", ".compare", ",");
 
             AddCMD("Shows your osu profile or someone elses in the respected gamemode", (sMsg, buffer) =>
             {
@@ -736,7 +931,7 @@ namespace CirclesBot
                     Logger.Log(ex.StackTrace, LogLevel.Error);
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
-            }, ">osu", ">mania", ">catch", ">ctb", ">taiko");
+            }, ".osu", ".mania", ".catch", ".ctb", ".taiko");
 
             AddCMD("Links your osu! account to the bot", (sMsg, buffer) =>
             {
@@ -758,7 +953,7 @@ namespace CirclesBot
 
                     sMsg.Channel.SendMessageAsync("Your osu user has been set to: " + user.Username);
                 }
-            }, ">osuset", ">link");
+            }, ".osuset", ".link");
 
             Commands.Add(new Command("Use this command if a map is out of sync with bots version", (sMsg, buffer) =>
             {
@@ -803,7 +998,7 @@ namespace CirclesBot
                 BeatmapManager.GetBeatmap(beatmapID, true);
                 sMsg.Channel.SendMessageAsync($"Refreshed {beatmapID} :ok_hand:");
 
-            }, ">refresh", ">rdl", ">f5", ">re")
+            }, ".refresh", ".rdl", ".f5", ".re")
             { Cooldown = 10 });
         }
     }

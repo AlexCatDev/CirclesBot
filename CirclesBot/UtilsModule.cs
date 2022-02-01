@@ -27,7 +27,7 @@ namespace CirclesBot
 
         class CallObject
         {
-            public ulong Callee;
+            public ulong Caller;
             public ulong Receiver;
 
             public bool CallAccepted = false;
@@ -48,7 +48,7 @@ namespace CirclesBot
                 {
                     sMsg.Channel.SendMessageAsync("Couldn't pass text as hex.");
                 }
-            }, ">hex");
+            }, ".hex");
 
             AddCMD("Make the bot say something", (sMsg, buffer) =>
             {
@@ -64,40 +64,54 @@ namespace CirclesBot
                 else
                     sMsg.Channel.SendMessageAsync($"{msg}");
 
-            }, ">say");
+            }, ".say");
 
             AddCMD("Roll a random number", (sMsg, buffer) =>
             {
-                int? max = buffer.GetInt();
+                double maxRoll = 100;
 
-                if (max == null)
-                    max = 100;
+                if(double.TryParse(buffer.TakeFirst(), out maxRoll)) {
+                    maxRoll = Math.Abs(maxRoll);
+                }
+                else
+                {
+                    maxRoll = 100;
+                }
 
-                int roll = Utils.GetRandomNumber(1, max.Value.Clamp(2, Int32.MaxValue - 1));
+                double roll = Math.Ceiling(Utils.GetRandomDouble() * maxRoll);
 
-                sMsg.Channel.SendMessageAsync($"{sMsg.Author.Mention} :game_die: {roll} :game_die:");
-            }, ">roll");
+                string rollString = $"{sMsg.Author.Mention} :game_die: {roll:F0} :game_die:";
+
+                if (double.IsInfinity(roll))
+                    rollString = ":face_with_raised_eyebrow: u trying to kill me?";
+
+                sMsg.Channel.SendMessageAsync(rollString);
+            }, ".roll");
 
             Commands.Add(new Command("Call another server lol", async (sMsg, buffer) =>
             {
                 string message = buffer.GetRemaining().Replace("_", " ");
 
-                CallObject activeCall1 = activeCalls.Find((o) => o.Callee == sMsg.Channel.Id);
+                CallObject activeCall1 = activeCalls.Find((o) => o.Caller == sMsg.Channel.Id);
                 CallObject activeCall2 = activeCalls.Find((o) => o.Receiver == sMsg.Channel.Id);
                 if (activeCall1 == null && activeCall2 == null)
                 {
                     EmbedBuilder builder = new EmbedBuilder();
+
                     SocketGuild guildToCall = CoreModule.Client.Guilds.ElementAt(Utils.GetRandomNumber(0, CoreModule.Client.Guilds.Count - 1));
+
                     builder.WithAuthor($"{sMsg.Author.Username} Is calling from {CoreModule.Client.GetGuild(sMsg).Name}", $"{sMsg.Author.GetAvatarUrl()}");
                     builder.WithThumbnailUrl($"{CoreModule.Client.GetGuild(sMsg).IconUrl}");
                     builder.Description = $"With the following message: **{message}**\nDo you want to pick up??";
                     try
                     {
-                        await sMsg.Channel.SendMessageAsync("Found a server! Waiting for someone to respond...");
+                        var msgSendChannel = guildToCall.TextChannels.First((o) => o.Name.ToLower().StartsWith("general"));
 
-                        var msgSend = await guildToCall.SystemChannel.SendMessageAsync("", false, builder.Build());
+                        await sMsg.Channel.SendMessageAsync($"Found **{msgSendChannel.Guild.Name}**! Waiting for some kind soul to respond...");
 
-                        activeCalls.Add(new CallObject() { Callee = sMsg.Channel.Id, Receiver = msgSend.Channel.Id });
+                        var msgSend = await msgSendChannel.SendMessageAsync("", false, builder.Build());
+
+                        activeCalls.Add(new CallObject() { Caller = sMsg.Channel.Id, Receiver = msgSend.Channel.Id });
 
                         await msgSend.AddReactionsAsync(new IEmote[] { new CallAcceptEmote(), new CallDenyEmote() });
                     }
@@ -107,7 +121,7 @@ namespace CirclesBot
                 {
                     await sMsg.Channel.SendMessageAsync("A call is already active");
                 }
-            }, ">call")
+            }, ".call")
             { IsEnabled = false });
 
             CoreModule.Client.ReactionAdded += async (s, e, x) =>
@@ -122,13 +136,13 @@ namespace CirclesBot
                         {
                             activeCall.CallAccepted = true;
                             await (CoreModule.Client.GetChannel(activeCall.Receiver) as IMessageChannel).SendMessageAsync("You have accepted the call now talk!");
-                            await (CoreModule.Client.GetChannel(activeCall.Callee) as IMessageChannel).SendMessageAsync("The other party has accepted!");
+                            await (CoreModule.Client.GetChannel(activeCall.Caller) as IMessageChannel).SendMessageAsync("The other party has accepted!");
                         }
                         else if (x.Emote.Name == new CallDenyEmote().Name)
                         {
                             activeCalls.Remove(activeCall);
                             await (CoreModule.Client.GetChannel(activeCall.Receiver) as IMessageChannel).SendMessageAsync("You have closed the call!");
-                            await (CoreModule.Client.GetChannel(activeCall.Callee) as IMessageChannel).SendMessageAsync("The other party closed the call!");
+                            await (CoreModule.Client.GetChannel(activeCall.Caller) as IMessageChannel).SendMessageAsync("The other party closed the call!");
                         }
                     }
                 }
@@ -137,18 +151,18 @@ namespace CirclesBot
             CoreModule.OnMessageReceived += (s) =>
             {
                 CallObject toSend = activeCalls.Find((o) => o.Receiver == s.Channel.Id);
-                CallObject toReceive = activeCalls.Find((o) => o.Callee == s.Channel.Id);
+                CallObject toReceive = activeCalls.Find((o) => o.Caller == s.Channel.Id);
 
                 if (toSend != null)
                 {
                     if (toSend.CallAccepted)
-                        (CoreModule.Client.GetChannel(toSend.Callee) as IMessageChannel).SendMessageAsync($":speech_balloon: **{s.Content}**");
+                        (CoreModule.Client.GetChannel(toSend.Caller) as IMessageChannel).SendMessageAsync($"{s.Author.Username} :speech_balloon: **{s.Content}**");
                 }
 
                 if (toReceive != null)
                 {
                     if (toReceive.CallAccepted)
-                        (CoreModule.Client.GetChannel(toReceive.Receiver) as IMessageChannel).SendMessageAsync($":speech_balloon: **{s.Content}**");
+                        (CoreModule.Client.GetChannel(toReceive.Receiver) as IMessageChannel).SendMessageAsync($"{s.Author.Username} :speech_balloon: **{s.Content}**");
                 }
             };
         }

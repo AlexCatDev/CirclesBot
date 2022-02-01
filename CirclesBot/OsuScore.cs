@@ -117,6 +117,8 @@ namespace CirclesBot
 
             RankingLetter = banchoPlay.RankLetter;
 
+
+
             CalculatePPAndDifficulty(beatmap);
         }
 
@@ -157,6 +159,25 @@ namespace CirclesBot
             SongName = ezpp.SongName;
             DifficultyName = ezpp.DifficultyName;
             ArtistName = ezpp.ArtistName;
+        }
+
+        public OsuScore(Mods mods, int score, int count300, int count100, int count50, int countMiss, int maxCombo, string rankingLetter, string beatmap, ulong beatmapID)
+        {
+            UserID = 0;
+            Username = "RTCircles-Local";
+            Date = DateTime.UtcNow;
+
+            RankingLetter = rankingLetter;
+            Count300 = count300;
+            Count100 = count100;
+            Count50 = count50;
+            CountMiss = countMiss;
+            MaxCombo = maxCombo;
+            Score = score;
+            EnabledMods = mods;
+            BeatmapID = beatmapID;
+
+            CalculatePPAndDifficulty(beatmap);
         }
     }
 }

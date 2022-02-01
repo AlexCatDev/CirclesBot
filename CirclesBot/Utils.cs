@@ -17,7 +17,7 @@ namespace CirclesBot
 {
     public static class Utils
     {
-        private static PerformanceCounter cpuCounter;
+        //private static PerformanceCounter cpuCounter;
         public static double CPUFrequency { get; private set; }
         public static string CPUName { get; private set; }
 
@@ -25,7 +25,7 @@ namespace CirclesBot
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                cpuCounter = new PerformanceCounter("Processor Information", "% Processor Performance", "_Total");
+                //cpuCounter = new PerformanceCounter("Processor Information", "% Processor Performance", "_Total");
                 using (ManagementClass managementClass = new ManagementClass("Win32_Processor"))
                 {
                     foreach (ManagementObject objMO in managementClass.GetInstances())
@@ -41,25 +41,26 @@ namespace CirclesBot
         {
             string output = string.Empty;
 
-            if (cpuCounter is not null)
-            {
-                double cpuValue = 0;
+            //            if (cpuCounter is not null)
+            //            {
+            //                double cpuValue = 0;
 
-                Utils.Benchmark(() =>
-                {
-                    while (cpuValue == 0)
-                    {
-#pragma warning disable CA1416 // Validate platform compatibility
-                        cpuValue = cpuCounter.NextValue();
-#pragma warning restore CA1416 // Validate platform compatibility
-                    }
-                }, "Query CPU", LogLevel.Info);
+            //                Utils.Benchmark(() =>
+            //                {
+            //                    while (cpuValue == 0)
+            //                    {
+            //#pragma warning disable CA1416 // Validate platform compatibility
+            //                        puValue = cpuCounter.NextValue();
+            //#pragma warning restore CA1416 // Validate platform compatibility
+            //                    }
+            //                }, "Query CPU", LogLevel.Info);
 
-                double turboSpeed = ((CPUFrequency / 1000) * cpuValue) / 100;
+            //                double turboSpeed = ((CPUFrequency / 1000) * cpuValue) / 100;
 
-                output += $"CPU: **{CPUName}**\n" +
-                    $"CPU Frequency: **{turboSpeed:F2}GHz**\n";
-            }
+            //                output += $"CPU: **{CPUName}**\n" +
+            //                    $"CPU Frequency: **{turboSpeed:F2}GHz**\n";
+            //            }
+            output += $"CPU: **{CPUName}**\n";
 
             output += $"CPU Cores: **{Environment.ProcessorCount}**\n";
 
@@ -77,6 +78,8 @@ namespace CirclesBot
         {
             return rng.NextDouble() < (chancePercentage/100.0);
         }
+
+        public static double GetRandomDouble() => rng.NextDouble();
 
         public static string ToFriendlyString(this Mods mod)
         {
@@ -181,26 +184,48 @@ namespace CirclesBot
             switch (rankLetter)
             {
                 case "F":
-                    return "<:rankF:756892070177931407>";
+                    return "<:RankF:847994614370795570>";
                 case "D":
-                    return "<:rankD:756833574342098994>";
+                    return "<:RankD:847994064020439062>";
                 case "C":
-                    return "<:rankC:756833574123995218>";
+                    return "<:RankC:847994063856467970>";
                 case "B":
-                    return "<:rankB:756833574296092672>";
+                    return "<:RankB:847994063944155197>";
                 case "A":
-                    return "<:rankA:756833574228983958>";
+                    return "<:RankA:847994064242868225>";
                 case "S":
-                    return "<:rankS:756833574216400896>";
+                    return "<:RankS:847994064220717086>";
                 case "X":
-                    return "<:rankSS:756833574228852796>";
+                    return "<:RankX:847994064238018560>";
                 case "SH":
-                    return "<:rankSH:756833574187171880>";
+                    return "<:RankSH:847994063977185322>";
                 case "XH":
-                    return "<:rankSSH:756833574111674390>";
+                    return "<:RankXH:847994064174579753>";
                 default:
                     return ":sunglasses:";
             }
+        }
+
+        public static void Save<T>(this T t, string filename)
+        {
+            string json = JsonConvert.SerializeObject(t);
+
+            File.WriteAllText($"./{filename}.json", json);
+        }
+
+        public static T Load<T>(string filename)
+        {
+            string path = $"./{filename}.json";
+
+            if (!File.Exists(path))
+            {
+                Logger.Log($"Could not load from {path} no such file exists, create instance used instead", LogLevel.Info);
+                return Activator.CreateInstance<T>();
+            }
+
+            string json = File.ReadAllText(path);
+            
+            return JsonConvert.DeserializeObject<T>(json);
         }
     }
 }

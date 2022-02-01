@@ -9,14 +9,31 @@ namespace CirclesBot
 {
     public class Command
     {
+        /// <summary>
+        /// The text that shows an example of how to use the command, or something else helpful/hinting
+        /// </summary>
         public string HelpText { get; private set; }
+        /// <summary>
+        /// What the command does
+        /// </summary>
         public string Description { get; private set; }
+        /// <summary>
+        /// What text triggers this command, needs to include the prefix, like !help
+        /// </summary>
         public List<string> Triggers { get; private set; }
 
         private Action<SocketUserMessage, CommandBuffer> onActivate;
 
+        /// <summary>
+        /// Is this command enabled? (Default: True)
+        /// </summary>
         public bool IsEnabled { get; set; } = true;
+        /// <summary>
+        /// The cooldown of this command in seconds
+        /// </summary>
         public double Cooldown { get; set; }
+
+        private Dictionary<ulong, DateTime> cooldownDictionary = new Dictionary<ulong, DateTime>();
 
         public Command(string description, Action<SocketUserMessage, CommandBuffer> onActivate, params string[] triggers)
         {
@@ -35,33 +52,34 @@ namespace CirclesBot
             string trigger = args[0];
 
             var cmd = Triggers.Find(triggerInList => triggerInList == trigger);
-            if (cmd != null)
+            if (string.IsNullOrEmpty(cmd) == false)
             {
                 args.RemoveAt(0);
-                if (IsEnabled)
-                {
-                    if (Cooldown > 0)
-                    {
-                        var time = DateTime.Now - CoreModule.GetModule<SocialModule>().GetProfile(userMsg.Author.Id).LastCommand;
 
-                        if (time.TotalSeconds < Cooldown)
+                if (!IsEnabled)
+                {
+                    userMsg.Channel.SendMessageAsync("This command has been disabled for some reason :thinking:");
+                    return;
+                }
+
+                if (Cooldown > 0)
+                {
+                    if (cooldownDictionary.TryGetValue(userMsg.Author.Id, out var lastInvokeTime))
+                    {
+                        var timeDiff = DateTime.Now - lastInvokeTime;
+                        if (timeDiff.TotalSeconds < Cooldown)
                         {
-                            userMsg.Channel.SendMessageAsync($"You're on cooldown: **{(Cooldown - time.TotalSeconds):F2}s**");
+                            userMsg.Channel.SendMessageAsync($"You are on cooldown! **{(Cooldown - timeDiff.TotalSeconds):F2}s** left");
                             return;
                         }
-
-                        CoreModule.GetModule<SocialModule>().ModifyProfile(userMsg.Author.Id, profile =>
-                        {
-                            profile.LastCommand = DateTime.Now;
-                        });
+                        else
+                            cooldownDictionary[userMsg.Author.Id] = DateTime.Now;
                     }
-                    onActivate?.Invoke(userMsg, new CommandBuffer(args, trigger));
-                    CoreModule.TotalCommandsHandled++;
+                    else
+                        cooldownDictionary.Add(userMsg.Author.Id, DateTime.Now);
                 }
-                else
-                {
-                    userMsg.Channel.SendMessageAsync("This command has been disabled by the bot owner");
-                }
+                onActivate?.Invoke(userMsg, new CommandBuffer(args, trigger));
+                CoreModule.TotalCommandsHandled++;
             }
         }
     }

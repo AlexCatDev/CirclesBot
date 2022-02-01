@@ -365,7 +365,7 @@ namespace CirclesBot
                     }, new Emoji("⚔️"));
                 }
 
-            }, ">ttt");
+            }, ".ttt");
 
             CoreModule.OnMessageReceived += (s) =>
             {

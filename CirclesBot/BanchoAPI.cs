@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 
 namespace CirclesBot
@@ -16,7 +17,7 @@ namespace CirclesBot
 
     public class BanchoAPI
     {
-        public static string GetProfileImageUrl(string userID) => $"https://a.ppy.sh/{userID}?{Utils.GetRandomNumber(1, Int32.MaxValue - 1)}.jpeg";
+        public static string GetProfileImageUrl(string userID) => userID == "0" ? $"https://cdn.discordapp.com/attachments/734187670049128504/909922950508085338/logo_1.png" : $"https://a.ppy.sh/{userID}?{Utils.GetRandomNumber(1, Int32.MaxValue - 1)}.jpeg";
         public static string GetBeatmapImageUrl(string beatmapSetID) => $"https://b.ppy.sh/thumb/{beatmapSetID}l.jpg";
         public static string GetFlagImageUrl(string country) => $"https://osu.ppy.sh/images/flags/{country}.png";
         public static string GetBeatmapUrl(string beatmapID) => $"https://osu.ppy.sh/b/{beatmapID}";

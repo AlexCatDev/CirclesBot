@@ -252,7 +252,7 @@ namespace CirclesBot
                 });
 
                 sMsg.Channel.SendMessageAsync("", false, builder.Build());
-            }, ">inventory", ">inv");
+            }, ".inventory", ".inv");
 
             AddCMD("View your profile", (sMsg, buffer) =>
             {
@@ -302,7 +302,7 @@ namespace CirclesBot
                     builder.WithFooter($"Bot Owner");
 
                 sMsg.Channel.SendMessageAsync("", false, builder.Build());
-            }, ">profile", ">pf");
+            }, ".profile", ".pf");
 
             AddCMD("Wipes a profile", (sMsg, buffer) =>
             {
@@ -325,7 +325,7 @@ namespace CirclesBot
                 {
                     sMsg.Channel.SendMessageAsync("no");
                 }
-            }, ">wipe");
+            }, ".wipe");
 
             AddCMD("Save code ;)", (sMsg, buffer) =>
             {
@@ -348,7 +348,7 @@ namespace CirclesBot
                 {
                     sMsg.Channel.SendMessageAsync("Not a valid code");
                 }
-            }, ">s");
+            }, ".s");
 
             AddCMD("Set your xp", (sMsg, buffer) =>
             {
@@ -382,7 +382,67 @@ namespace CirclesBot
                 {
                     sMsg.Channel.SendMessageAsync("no");
                 }
-            }, ">xp");
+            }, ".xp");
+
+            AddCMD("Hit the bell as hard as you can", (sMsg, buffer) =>
+            {
+                Dictionary<int, string[]> responses = new Dictionary<int, string[]>() { 
+                    { 1, new[] { "Bad", "no" } },
+                    { 2, new[] { "Less bad", "Less no" } },
+                    { 3, new[] { "fsdfslpfs", "gjfodfjgodf" } },
+                    { 4, new[] { "riewrp+oewr", "dfkgdpægd" } },
+                    { 5, new[] { "gkfgeiwrf", "dsækfgmdsfs" } },
+                    { 6, new[] { "dfgkdfpogdf", "dsælokdspfos" } },
+                    { 7, new[] { "feskflsædf", "dfgkfdopg" } },
+                    { 8, new[] { "dsmcv,sdmfkls", "dsæflksdlæf" } },
+                    { 9, new[] { "l5åtøelt.e", "ti43t903t" } },
+                    { 10, new[] { "Impressive, your finger must be aching now", "Get a life", "Simply. The best" } },
+                };
+
+                EmbedBuilder embedBuilder = new EmbedBuilder();
+
+                embedBuilder.WithAuthor("Hit the bell as hard as you can!", sMsg.Author.GetAvatarUrl());
+                embedBuilder.Description += $"🔔\n";
+                embedBuilder.Description += $"░\n";
+                embedBuilder.Description += $"░\n";
+                embedBuilder.Description += $"░\n";
+                embedBuilder.Description += $"░\n";
+                embedBuilder.Description += $"░\n";
+                embedBuilder.Description += $"░\n";
+                embedBuilder.Description += $"░\n";
+                embedBuilder.Description += $"░\n";
+                embedBuilder.Description += $"░\n";
+                embedBuilder.Description += $"░\n";
+
+                var sendMsg = sMsg.Channel.SendMessageAsync(embed: embedBuilder.Build()).Result;
+
+                Extensions.CreateReactionCollector(sendMsg, (id, emote, wasAdded) => { 
+                    if(id == sMsg.Author.Id)
+                    {
+                        embedBuilder.Description = "🔔\n";
+
+                        int num = Utils.GetRandomNumber(1, 100);
+
+                        int ticks = (int)Math.Floor((num * 10d) / 100d);
+
+                        for (int i = 0; i < 10 - ticks; i++)
+                        {
+                            embedBuilder.Description += $"░\n";
+                        }
+
+                        var response = responses[ticks];
+
+                        for (int i = 0; i < ticks; i++)
+                        {
+                            embedBuilder.Description += $"█{(i == 0 ? $"{num}/100 {response[Utils.GetRandomNumber(0, response.Length - 1)]}" : "")}\n";
+                        }
+
+                        sendMsg.ModifyAsync((o) => { o.Embed = embedBuilder.Build(); });
+
+                        sendMsg.DeleteReactionCollector();
+                    }
+                }, new Emoji("🔔"));
+            }, ".bell");
 
             CoreModule.OnMessageReceived += (s) =>
             {

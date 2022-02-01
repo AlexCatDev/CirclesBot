@@ -46,6 +46,13 @@ namespace CirclesBot
             return output;
         }
 
+        public string TakeFirst()
+        {
+            string first = buffer[0];
+            buffer.RemoveAt(0);
+            return first;
+        }
+
         public int? GetInt()
         {
             foreach (var str in buffer)
@@ -98,7 +105,7 @@ namespace CirclesBot
                     return result;
                 }
             }
-
+            
             return null;
         }
 
