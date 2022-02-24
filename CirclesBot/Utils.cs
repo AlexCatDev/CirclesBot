@@ -208,7 +208,7 @@ namespace CirclesBot
 
         public static void Save<T>(this T t, string filename)
         {
-            string json = JsonConvert.SerializeObject(t);
+            string json = JsonConvert.SerializeObject(t, Formatting.Indented);
 
             File.WriteAllText($"./{filename}.json", json);
         }

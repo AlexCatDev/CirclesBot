@@ -2,6 +2,7 @@
 using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -169,6 +170,8 @@ namespace CirclesBot
                 }
             }
 
+            username = username.Replace("\"", "");
+
             return username;
         }
 
@@ -203,7 +206,7 @@ namespace CirclesBot
 
         class TrackStorage
         {
-            Dictionary<ulong, BanchoAPI.BanchoBestScore> prevTopPlays = null;
+            public Dictionary<ulong, BanchoAPI.BanchoBestScore> PrevTopPlays { get; set; } = new();
 
             public List<ulong> Channels { get; set; } = new List<ulong>();
 
@@ -219,26 +222,24 @@ namespace CirclesBot
                     if (topPlays.Count == 0)
                         return;
 
-                    if (prevTopPlays == null)
+                    if (PrevTopPlays.Count == 0)
                     {
-                        prevTopPlays = new();
-
                         foreach (var item in topPlays)
                         {
-                            prevTopPlays.Add(item.ScoreID, item);
+                            PrevTopPlays.Add(item.ScoreID, item);
                         }
-
                         return;
                     }
 
-                    List<BanchoAPI.BanchoBestScore> diff = new();
+                    List<(int placement, BanchoAPI.BanchoBestScore score)> diff = new();
 
-                    foreach (var item in topPlays)
+                    for (int i = 0; i < topPlays.Count; i++)
                     {
-                        if (!prevTopPlays.ContainsKey(item.ScoreID))
+                        var item = topPlays[i];
+                        if (!PrevTopPlays.ContainsKey(item.ScoreID))
                         {
-                            prevTopPlays.Add(item.ScoreID, item);
-                            diff.Add(item);
+                            PrevTopPlays.Add(item.ScoreID, item);
+                            diff.Add((i + 1, item));
                         }
                     }
 
@@ -249,8 +250,9 @@ namespace CirclesBot
 
                     foreach (var rup in diff)
                     {
-                        OsuScore score = new OsuScore(BeatmapManager.GetBeatmap(rup.BeatmapID), rup);
-
+                        OsuScore score = new OsuScore(BeatmapManager.GetBeatmap(rup.score.BeatmapID), rup.score);
+                        score.Placement = rup.placement;
+                        
                         scores.Add(score);
                     }
 
@@ -260,7 +262,7 @@ namespace CirclesBot
 
                         osuModule.RememberScores(channel.Id, scores);
 
-                        Pages pages = osuModule.CreateScorePages(scores, $"New {OsuGamemode.Standard} top play from {Username}");
+                        Pages pages = osuModule.CreateScorePages(scores, $"New osu! {OsuGamemode.Standard} top plays from {Username}");
 
                         PagesHandler.SendPages(channel, pages);
                     }
@@ -403,6 +405,7 @@ namespace CirclesBot
 
             new Thread(() =>
             {
+                Stopwatch sw = Stopwatch.StartNew();
                 while (true)
                 {
                     Thread.Sleep(1);
@@ -415,6 +418,15 @@ namespace CirclesBot
 
                         user.Value.Update(this);
                         Thread.Sleep(1000);
+                    }
+
+                    if(sw.ElapsedMilliseconds > 50000)
+                    {
+                        Utils.Benchmark(() =>
+                        {
+                            trackedUsers.Save("TrackedUsers");
+                        }, "Saving tracked users", LogLevel.Success);
+                        sw.Restart();
                     }
                 }
             }).Start();
@@ -430,9 +442,19 @@ namespace CirclesBot
                     }
                 }
 
-                bool delete = buffer.HasParameter("-d");
+                bool remove = buffer.HasParameter("remove");
+                bool add = buffer.HasParameter("add");
 
-                bool list = buffer.HasParameter("-l");
+                bool list = false;
+                
+                if(!add && !remove)
+                    list = buffer.HasParameter("list");
+
+                if(!remove && !add && !list)
+                {
+                    sMsg.Channel.SendMessageAsync("Possible Options are: ```.track add <user>\n.track remove <user>\n.track list```");
+                    return;
+                }
 
                 if (list)
                 {
@@ -453,7 +475,9 @@ namespace CirclesBot
                     return;
                 }
 
-                string userToCheck = DecipherOsuUsername(sMsg, buffer).ToLower();
+                string userToCheck = DecipherOsuUsername(sMsg, buffer);
+
+                string key = userToCheck.ToLower();
 
                 if (userToCheck == null)
                 {
@@ -461,18 +485,18 @@ namespace CirclesBot
                     return;
                 }
 
-                if (!trackedUsers.ContainsKey(userToCheck))
-                    trackedUsers.Add(userToCheck, new TrackStorage() { Username = userToCheck });
+                if (!trackedUsers.ContainsKey(key))
+                    trackedUsers.Add(key, new TrackStorage() { Username = userToCheck });
 
-                if (trackedUsers[userToCheck].Channels.Contains(sMsg.Channel.Id))
+                if (trackedUsers[key].Channels.Contains(sMsg.Channel.Id))
                 {
-                    if (delete)
+                    if (remove)
                     {
-                        trackedUsers[userToCheck].Channels.Remove(sMsg.Channel.Id);
+                        trackedUsers[key].Channels.Remove(sMsg.Channel.Id);
                         sMsg.Channel.SendMessageAsync($"Removed {userToCheck} tracking from this channel.");
 
-                        if (trackedUsers[userToCheck].Channels.Count == 0)
-                            trackedUsers.Remove(userToCheck);
+                        if (trackedUsers[key].Channels.Count == 0)
+                            trackedUsers.Remove(key);
 
                         Utils.Save(trackedUsers, "TrackedUsers");
                     }
@@ -480,13 +504,13 @@ namespace CirclesBot
                         sMsg.Channel.SendMessageAsync($"Already tracking top plays for {userToCheck} in this channel.");
 
                     return;
-                }else if (delete)
+                } else if (remove)
                 {
                     sMsg.Channel.SendMessageAsync($"{userToCheck} is not tracked in this channel...?");
                     return;
                 }
 
-                trackedUsers[userToCheck].Channels.Add(sMsg.Channel.Id);
+                trackedUsers[key].Channels.Add(sMsg.Channel.Id);
                 Utils.Save(trackedUsers, "TrackedUsers");
 
                 sMsg.Channel.SendMessageAsync($"Now tracking top plays for `{userToCheck}` in <{sMsg.Channel.Name}>");
