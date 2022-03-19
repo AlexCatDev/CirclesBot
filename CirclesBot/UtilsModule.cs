@@ -50,7 +50,7 @@ namespace CirclesBot
                 }
             }, ".hex");
 
-            AddCMD("Make the bot say something", (sMsg, buffer) =>
+            Commands.Add(new Command("Make the bot say something", (sMsg, buffer) =>
             {
                 if (sMsg.MentionedRoles.Count > 0 || sMsg.MentionedUsers.Count > 0)
                 {
@@ -64,13 +64,15 @@ namespace CirclesBot
                 else
                     sMsg.Channel.SendMessageAsync($"{msg}");
 
-            }, ".say");
+            }, ".say")
+            { IsEnabled = false });
 
             AddCMD("Roll a random number", (sMsg, buffer) =>
             {
                 double maxRoll = 100;
 
-                if(double.TryParse(buffer.TakeFirst(), out maxRoll)) {
+                if (double.TryParse(buffer.TakeFirst(), out maxRoll))
+                {
                     maxRoll = Math.Abs(maxRoll);
                 }
                 else

@@ -158,23 +158,31 @@ namespace CirclesBot
         //Credits: https://github.com/raresica1234
         public static string FormatTime(TimeSpan time, bool ago = true, int statCount = 3)
         {
-            int[] stats = new int[] { (int)(time.Days / 365), 0, time.Days, time.Hours, time.Minutes, time.Seconds.Clamp(1, 60) };
+            int[] stats = new int[] { time.Days / 365, 0, time.Days, time.Hours, time.Minutes, time.Seconds.Clamp(1, 60) };
+
             stats[2] -= stats[0] * 365;
             stats[1] = stats[2] / 30;
             stats[2] -= stats[1] * 30;
-            string[] names = new string[] { " Years ", " Months ", " Days ", " Hours ", " Minutes ", " Seconds " };
+            string[] names = new string[] { " År ", " Månneder ", " Dage ", " Timer ", " Minutter ", " Sekundter " };
             string output = "";
+
+            bool first = true;
+
             for (int i = 0; i < stats.Length && statCount != 0; i++)
             {
                 if (stats[i] != 0)
                 {
-                    output += stats[i] + names[i];
+                    string name = first ? names[i] : names[i].ToLower();
+
+                    output += stats[i] + name;
+                    first = false;
+
                     statCount--;
                 }
             }
 
             if (ago)
-                output += "Ago";
+                output += "siden";
 
             return output;
         }
@@ -186,40 +194,50 @@ namespace CirclesBot
                 case "F":
                     return "<:RankF:847994614370795570>";
                 case "D":
-                    return "<:RankD:847994064020439062>";
+                    return "<:DRank:953968398012911636>";
                 case "C":
-                    return "<:RankC:847994063856467970>";
+                    return "<:CRank:953968398054858762>";
                 case "B":
-                    return "<:RankB:847994063944155197>";
+                    return "<:BRank:953968398147133460>";
                 case "A":
-                    return "<:RankA:847994064242868225>";
+                    return "<:ARank:953968398017134592>";
                 case "S":
-                    return "<:RankS:847994064220717086>";
+                    return "<:SRank:953968398021300234>";
                 case "X":
-                    return "<:RankX:847994064238018560>";
+                    return "<:SSRank:953968330098737162>";
                 case "SH":
-                    return "<:RankSH:847994063977185322>";
+                    return "<:SHRank:953968398096797706>";
                 case "XH":
-                    return "<:RankXH:847994064174579753>";
+                    return "<:SSHRank:953968398268764200>";
                 default:
                     return ":sunglasses:";
             }
         }
 
-        public static void Save<T>(this T t, string filename)
+        public static void Save<T>(this T t, string filename) => SaveSecure(t, filename);
+
+        public static void SaveSecure<T>(this T t, string filename)
         {
             string json = JsonConvert.SerializeObject(t, Formatting.Indented);
 
-            File.WriteAllText($"./{filename}.json", json);
+            string pathFile = $"./{filename}";
+
+            string pathFileTmp = $"{pathFile}.tmp";
+
+            //Write to a temporary file..
+            File.WriteAllText(pathFileTmp, json);
+            
+            //Move the temp file to the main file, overwriting it
+            File.Move(pathFileTmp, pathFile, true);
         }
 
         public static T Load<T>(string filename)
         {
-            string path = $"./{filename}.json";
+            string path = $"./{filename}";
 
             if (!File.Exists(path))
             {
-                Logger.Log($"Could not load from {path} no such file exists, create instance used instead", LogLevel.Info);
+                Logger.Log($"{path} no such file exists, create instance used instead", LogLevel.Info);
                 return Activator.CreateInstance<T>();
             }
 

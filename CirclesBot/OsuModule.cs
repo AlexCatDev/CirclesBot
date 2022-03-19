@@ -45,14 +45,14 @@ namespace CirclesBot
             embedBuilder.Description += $"▸ **[Profile Link](https://osu.ppy.sh/users/{osuProfile.ID}/osu)**\n";
             embedBuilder.Description += $"▸ **Rank:** #{osuProfile.Rank}  ({osuProfile.Country}#{osuProfile.CountryRank})\n";
             embedBuilder.Description += $"▸ **Level:** {osuProfile.Level:F2}\n";
-            embedBuilder.Description += $"▸ **PP:** {osuProfile.PP:F2} ({ppStart} - {ppEnd})\n";
-            embedBuilder.Description += $"▸ **Accuracy:** {osuProfile.Accuracy.ToString("F2")}%\n";
-            embedBuilder.Description += $"▸ **Playcount:** {osuProfile.Playcount} ({Math.Ceiling(TimeSpan.FromSeconds(osuProfile.TotalPlaytimeInSeconds).TotalHours)} Hours)\n";
-            embedBuilder.Description += $"▸ **Ranked Score:** {osuProfile.RankedScore / 1000000.0:F2} Million\n";
+            embedBuilder.Description += $"▸ **Ydevne Points:** {osuProfile.PP:F2} ({ppStart:F2} - {ppEnd:F2})\n";
+            embedBuilder.Description += $"▸ **Nøjagtighed:** {osuProfile.Accuracy.ToString("F2")}%\n";
+            embedBuilder.Description += $"▸ **Spille Antal:** {osuProfile.Playcount} ({Math.Ceiling(TimeSpan.FromSeconds(osuProfile.TotalPlaytimeInSeconds).TotalHours)} Timer)\n";
+            embedBuilder.Description += $"▸ **Rankeret Score:** {osuProfile.RankedScore / 1000000.0:F2} Millioner\n";
             embedBuilder.Description += $"▸ {Utils.GetEmoteForRankLetter("XH")} **{osuProfile.SSHCount}** {Utils.GetEmoteForRankLetter("X")} **{osuProfile.SSCount}** {Utils.GetEmoteForRankLetter("SH")} **{osuProfile.SHCount}** {Utils.GetEmoteForRankLetter("S")} **{osuProfile.SCount}** {Utils.GetEmoteForRankLetter("A")} **{osuProfile.ACount}**\n";
 
             embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
-            embedBuilder.WithFooter($"Joined osu! {Utils.FormatTime(DateTime.UtcNow - osuProfile.JoinDate)}");
+            embedBuilder.WithFooter($"Oprettede sin osu! profil for {Utils.FormatTime(DateTime.UtcNow - osuProfile.JoinDate)}");
             return embedBuilder;
         }
 
@@ -82,7 +82,7 @@ namespace CirclesBot
                 if (isLastScore)
                     currentScoreIndex++;
 
-                embedBuilder.WithFooter($"Displaying {currentScoreIndex}/{scores.Count} Scores");
+                embedBuilder.WithFooter($"Viser {currentScoreIndex} af {scores.Count} Scores");
 
                 pages.AddEmbed(embedBuilder.Build());
                 embedBuilder = new EmbedBuilder();
@@ -126,9 +126,9 @@ namespace CirclesBot
                 tempDesc += $"▸ **CS:** {score.CS.ToString("F1")} **OD:** {score.OD.ToString("F1")} **AR:** {score.AR.ToString("F1")} **HP:** {score.HP.ToString("F1")} ▸ **BPM:** {score.BPM.ToString("F0")}\n";
 
                 if (score.IsPass == false)
-                    tempDesc += $"▸ **Map Completion:** {score.CompletionPercentage.ToString("F2")}%\n";
+                    tempDesc += $"▸ **Map Færdighed:** {score.CompletionPercentage.ToString("F2")}%\n";
 
-                tempDesc += $"▸ Score set {Utils.FormatTime(DateTime.UtcNow - score.Date)}\n";
+                tempDesc += $"▸ {Utils.FormatTime(DateTime.UtcNow - score.Date, true, 2)}\n";
 
                 if (tempDesc.Length + description.Length >= 2048)
                     CompileEmbed(isLastScore, score, firstScore);
@@ -275,7 +275,7 @@ namespace CirclesBot
             }
         }
 
-        Dictionary<string, TrackStorage> trackedUsers = Utils.Load<Dictionary<string, TrackStorage>>("TrackedUsers");
+        Dictionary<string, TrackStorage> trackedUsers = Utils.Load<Dictionary<string, TrackStorage>>("TrackedUsers.json");
 
         public OsuModule()
         {
@@ -424,7 +424,7 @@ namespace CirclesBot
                     {
                         Utils.Benchmark(() =>
                         {
-                            trackedUsers.Save("TrackedUsers");
+                            trackedUsers.Save("TrackedUsers.json");
                         }, "Saving tracked users", LogLevel.Success);
                         sw.Restart();
                     }
@@ -498,7 +498,7 @@ namespace CirclesBot
                         if (trackedUsers[key].Channels.Count == 0)
                             trackedUsers.Remove(key);
 
-                        Utils.Save(trackedUsers, "TrackedUsers");
+                        Utils.Save(trackedUsers, "TrackedUsers.json");
                     }
                     else
                         sMsg.Channel.SendMessageAsync($"Already tracking top plays for {userToCheck} in this channel.");
@@ -511,7 +511,7 @@ namespace CirclesBot
                 }
 
                 trackedUsers[key].Channels.Add(sMsg.Channel.Id);
-                Utils.Save(trackedUsers, "TrackedUsers");
+                Utils.Save(trackedUsers, "TrackedUsers.json");
 
                 sMsg.Channel.SendMessageAsync($"Now tracking top plays for `{userToCheck}` in <{sMsg.Channel.Name}>");
             }, ".track"));
@@ -591,7 +591,7 @@ namespace CirclesBot
 
                     RememberScores(sMsg.Channel.Id, scores);
 
-                    Pages pages = CreateScorePages(scores, $"Recent {mode} plays for {scores[0].Username ?? userToCheck}");
+                    Pages pages = CreateScorePages(scores, $"Nye osu-{mode.ToString().ToLower()} scores sat af {scores[0].Username ?? userToCheck}");
 
                     PagesHandler.SendPages(sMsg.Channel, pages);
                 }

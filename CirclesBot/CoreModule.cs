@@ -177,7 +177,7 @@ namespace CirclesBot
         {
             runTimeWatch.Start();
             Logger.Log($"[Bot Connect]\nUser={Client.CurrentUser.Username}", LogLevel.Success);
-            Client.SetGameAsync(".help");
+            Client.SetGameAsync(".help // Everything corrupted, so your tracking lists are gone");
             return Task.Delay(0);
         }
 

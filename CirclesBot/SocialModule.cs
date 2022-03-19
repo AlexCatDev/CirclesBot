@@ -196,7 +196,8 @@ namespace CirclesBot
                     if (profile.Value.WasModified)
                     {
                         profile.Value.WasModified = false;
-                        File.WriteAllText($"{DiscordProfileDirectory}/{profile.Key}", JsonConvert.SerializeObject(profile.Value));
+
+                        profile.Value.Save($"{DiscordProfileDirectory}/{profile.Key}");
                         saveCounter++;
                     }
                 }
@@ -387,21 +388,21 @@ namespace CirclesBot
             AddCMD("Hit the bell as hard as you can", (sMsg, buffer) =>
             {
                 Dictionary<int, string[]> responses = new Dictionary<int, string[]>() { 
-                    { 1, new[] { "Bad", "no" } },
+                    { 1, new[] { "Dårlig", "nej", "svans", "per" } },
                     { 2, new[] { "Less bad", "Less no" } },
-                    { 3, new[] { "fsdfslpfs", "gjfodfjgodf" } },
-                    { 4, new[] { "riewrp+oewr", "dfkgdpægd" } },
-                    { 5, new[] { "gkfgeiwrf", "dsækfgmdsfs" } },
-                    { 6, new[] { "dfgkdfpogdf", "dsælokdspfos" } },
-                    { 7, new[] { "feskflsædf", "dfgkfdopg" } },
-                    { 8, new[] { "dsmcv,sdmfkls", "dsæflksdlæf" } },
-                    { 9, new[] { "l5åtøelt.e", "ti43t903t" } },
-                    { 10, new[] { "Impressive, your finger must be aching now", "Get a life", "Simply. The best" } },
+                    { 3, new[] { "Very not good", "Lol", "zzzzz" } },
+                    { 4, new[] { "Too bad", "Never lucky", "Jeg ved ikk hvad jeg sidder og laver lige nu hils hvis du ser det her" } },
+                    { 5, new[] { "Sex", "50/50" } },
+                    { 6, new[] { "Almost good", "Cum", "Klokken er mange og jeg er træt" } },
+                    { 7, new[] { "Genetics capped", "Fuck jeg har ondt i maven" } },
+                    { 8, new[] { "blue zenith", "Wtf" } },
+                    { 9, new[] { "Cookiezi 727", "KekW" } },
+                    { 10, new[] { "Good use of your time :thumb_up:", "Get a life", "Flot klaret" } },
                 };
 
                 EmbedBuilder embedBuilder = new EmbedBuilder();
 
-                embedBuilder.WithAuthor("Hit the bell as hard as you can!", sMsg.Author.GetAvatarUrl());
+                embedBuilder.WithAuthor("Ram klokken så hårdt du kan", sMsg.Author.GetAvatarUrl());
                 embedBuilder.Description += $"🔔\n";
                 embedBuilder.Description += $"░\n";
                 embedBuilder.Description += $"░\n";

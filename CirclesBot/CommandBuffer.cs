@@ -48,6 +48,9 @@ namespace CirclesBot
 
         public string TakeFirst()
         {
+            if (buffer.Count == 0)
+                return string.Empty;
+
             string first = buffer[0];
             buffer.RemoveAt(0);
             return first;
