@@ -30,17 +30,14 @@
   <ItemGroup>
     <PackageReference Include="Discord.Net.Core" Version="2.2.0" />
     <PackageReference Include="Discord.Net.WebSocket" Version="2.2.0" />
+    <PackageReference Include="ppy.osu.Game" Version="2023.513.0" />
+    <PackageReference Include="ppy.osu.Game.Rulesets.Catch" Version="2023.513.0" />
+    <PackageReference Include="ppy.osu.Game.Rulesets.Mania" Version="2023.513.0" />
+    <PackageReference Include="ppy.osu.Game.Rulesets.Osu" Version="2023.513.0" />
+    <PackageReference Include="ppy.osu.Game.Rulesets.Taiko" Version="2023.513.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.1" />
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="5.0.1" />
     <PackageReference Include="System.Management" Version="5.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="Oppai\liboppai.so">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Oppai\oppai.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using Microsoft.Win32.SafeHandles;
+using SixLabors.ImageSharp.Processing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -28,35 +30,34 @@ namespace CirclesBot
         //Maps a discord channel id to a list of osu! scores (ulong: Discord channel id), (self explainatory)
         private Dictionary<ulong, List<OsuScore>> channelToScores = new Dictionary<ulong, List<OsuScore>>();
 
-        private BanchoAPI banchoAPI = new BanchoAPI(CoreModule.Config.OSU_API_KEY);
+        private YL3API yl3API = new YL3API();
 
-        private EmbedBuilder CreateProfileEmbed(OsuProfile osuProfile, List<BanchoAPI.BanchoBestScore> topPlays)
+        private EmbedBuilder CreateProfileEmbed(OsuProfile osuProfile, List<Score> topPlays)
         {
-            float ppStart = 0;
-            float ppEnd = 0;
+            double ppStart = 0;
+            double ppEnd = 0;
 
             if (topPlays.Count > 0)
             {
-                ppStart = topPlays[0].PP;
-                ppEnd = topPlays.Last().PP;
+                ppStart = topPlays[0].pp;
+                ppEnd = topPlays.Last().pp;
             }
 
             EmbedBuilder embedBuilder = new EmbedBuilder();
-            embedBuilder.Description += $"▸ **[Profile Link](https://osu.ppy.sh/users/{osuProfile.ID}/osu)**\n";
             embedBuilder.Description += $"▸ **Rank:** #{osuProfile.Rank}  ({osuProfile.Country}#{osuProfile.CountryRank})\n";
-            embedBuilder.Description += $"▸ **Level:** {osuProfile.Level:F2}\n";
-            embedBuilder.Description += $"▸ **Ydevne Points:** {osuProfile.PP:F2} ({ppStart:F2} - {ppEnd:F2})\n";
+            embedBuilder.Description += $"▸ **Per Points:** {osuProfile.PP:F2} ({ppStart:F2} - {ppEnd:F2})\n";
             embedBuilder.Description += $"▸ **Nøjagtighed:** {osuProfile.Accuracy.ToString("F2")}%\n";
             embedBuilder.Description += $"▸ **Spille Antal:** {osuProfile.Playcount} ({Math.Ceiling(TimeSpan.FromSeconds(osuProfile.TotalPlaytimeInSeconds).TotalHours)} Timer)\n";
-            embedBuilder.Description += $"▸ **Rankeret Score:** {osuProfile.RankedScore / 1000000.0:F2} Millioner\n";
+            embedBuilder.Description += $"▸ **Rankeret Score:** {osuProfile.RankedScore / 1000000.0:F2} Mil\n";
             embedBuilder.Description += $"▸ {Utils.GetEmoteForRankLetter("XH")} **{osuProfile.SSHCount}** {Utils.GetEmoteForRankLetter("X")} **{osuProfile.SSCount}** {Utils.GetEmoteForRankLetter("SH")} **{osuProfile.SHCount}** {Utils.GetEmoteForRankLetter("S")} **{osuProfile.SCount}** {Utils.GetEmoteForRankLetter("A")} **{osuProfile.ACount}**\n";
 
             embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
-            embedBuilder.WithFooter($"Oprettede sin osu! profil for {Utils.FormatTime(DateTime.UtcNow - osuProfile.JoinDate)}");
+            embedBuilder.WithFooter($"Oprettede sin YL3 profil for {Utils.FormatTime(DateTime.UtcNow - osuProfile.JoinDate)}");
             return embedBuilder;
         }
+        const string LOGO_URL = "https://cdn.discordapp.com/attachments/591771006633246722/1073985222305120306/yl31.png";
 
-        private Pages CreateScorePages(List<OsuScore> scores, string authorText, bool isLeaderboard = false)
+        private Pages CreateScorePages(List<OsuScore> scores, string authorText, bool isLeaderboard = false, string actionUsername = "")
         {
             EmbedBuilder embedBuilder = new EmbedBuilder();
             Pages pages = new Pages();
@@ -68,10 +69,12 @@ namespace CirclesBot
             {
                 string beatmapSetID = Utils.FindBeatmapsetID(BeatmapManager.GetBeatmap(firstScore.BeatmapID)).ToString();
 
-                embedBuilder.WithThumbnailUrl(BanchoAPI.GetBeatmapImageUrl(beatmapSetID).ToString());
+                embedBuilder.WithThumbnailUrl(YL3API.GetBeatmapImageUrl(beatmapSetID).ToString());
 
                 embedBuilder.WithDescription(description);
-                embedBuilder.WithAuthor(authorText, BanchoAPI.GetProfileImageUrl(firstScore.UserID.ToString()));
+                embedBuilder.WithAuthor(authorText,
+                   iconUrl: YL3API.GetProfileImageUrl(firstScore.UserID.ToString()),
+                   url: YL3API.GetProfileUrl(firstScore.UserID.ToString()));
 
                 embedBuilder.WithColor(new Color(Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255), Utils.GetRandomNumber(0, 255)));
 
@@ -82,7 +85,8 @@ namespace CirclesBot
                 if (isLastScore)
                     currentScoreIndex++;
 
-                embedBuilder.WithFooter($"Viser {currentScoreIndex} af {scores.Count} Scores");
+                if(scores.Count == 1) embedBuilder.WithFooter($"YL3 Server", LOGO_URL); 
+                else embedBuilder.WithFooter($"YL3 Server {currentScoreIndex} af {scores.Count} Scores", LOGO_URL);
 
                 pages.AddEmbed(embedBuilder.Build());
                 embedBuilder = new EmbedBuilder();
@@ -92,6 +96,7 @@ namespace CirclesBot
 
             OsuScore firstScore = null;
 
+            //This is the most disgusting code i have ever written
             foreach (var score in scores)
             {
                 if (firstScore is null)
@@ -115,22 +120,33 @@ namespace CirclesBot
 
                 if (isLeaderboard)
                 {
-                    string leader = count == 1 ? ":crown: " : $"{count}. ";
-                    tempDesc += $"**{leader} {score.Username} +{score.EnabledMods.ToFriendlyString()}** [{score.StarRating:F2}★]\n";
-                }
-                else
-                    tempDesc += $"**{count}.** [**{score.ArtistName} - {score.SongName} [{score.DifficultyName}]**]({BanchoAPI.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]\n";
+                    //string leader = count == 1 ? ":crown: " : $"{count}. ";
+                    string leader = "";
 
-                tempDesc += $"▸ {Utils.GetEmoteForRankLetter(score.RankingLetter)} ▸ **{score.PP.ToString("F2")}PP**{placementText}{isFCInfo} ▸ {score.Accuracy.ToString("F2")}%\n";
+                    if (count == 1)
+                        leader += ":crown: ";
+
+                    leader += score.Username.ToLower() == actionUsername.ToLower() ? $":arrow_right: **`{score.Username}`** :arrow_left:" : $"**{score.Username}**";
+
+                    tempDesc += $"{leader} **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating:F2}★]\n";
+                }
+                else {
+                    tempDesc += $"**{count}.** [**{score.ArtistName} - {score.SongName} [{score.DifficultyName}]**]({YL3API.GetBeatmapUrl(score.BeatmapID.ToString())}) **+{score.EnabledMods.ToFriendlyString()}** [{score.StarRating.ToString("F2")}★]\n";
+                }
+                tempDesc += $"▸ {Utils.GetEmoteForRankLetter(score.RankingLetter)} ▸ **{score.PP.ToString("F2")}PP ▸ {score.Accuracy.ToString("F2")}% ▸ **{placementText}{isFCInfo}\n";
                 tempDesc += $"▸ {score.Score} ▸ x{score.MaxCombo}/{score.MapMaxCombo} ▸ [{score.Count300}/{score.Count100}/{score.Count50}/{score.CountMiss}]\n";
                 tempDesc += $"▸ **CS:** {score.CS.ToString("F1")} **OD:** {score.OD.ToString("F1")} **AR:** {score.AR.ToString("F1")} **HP:** {score.HP.ToString("F1")} ▸ **BPM:** {score.BPM.ToString("F0")}\n";
 
                 if (score.IsPass == false)
-                    tempDesc += $"▸ **Map Færdighed:** {score.CompletionPercentage.ToString("F2")}%\n";
+                    tempDesc += $"▸ **Map Completion:** {score.CompletionPercentage.ToString("F2")}%\n";
 
-                tempDesc += $"▸ {Utils.FormatTime(DateTime.UtcNow - score.Date, true, 2)}\n";
+                //tempDesc += $"▸ {Utils.FormatTime(DateTime.UtcNow - score.Date, true, 2)}\n";
 
-                if (tempDesc.Length + description.Length >= 2048)
+                string scoreHyperLink = score.ID.HasValue ? $" [Link]({YL3API.GetScoreUrl(score.ID.Value.ToString())})" : string.Empty;
+
+                tempDesc += $"▸ <t:{new DateTimeOffset(score.Date).ToUnixTimeSeconds() + 7200}:R> {scoreHyperLink}\n";
+
+                if (tempDesc.Length + description.Length >= 1024)
                     CompileEmbed(isLastScore, score, firstScore);
 
                 description += tempDesc;
@@ -165,7 +181,7 @@ namespace CirclesBot
 
                 if (username == "")
                 {
-                    sMsg.Channel.SendMessageAsync("You don't have a linked osu! account **>link <username>**");
+                    sMsg.Channel.SendMessageAsync($"You don't have a linked yl3! account **>link <username>** so i'm guessing it's '**{sMsg.Author.Username}**'");
                     return sMsg.Author.Username;
                 }
             }
@@ -204,100 +220,9 @@ namespace CirclesBot
                 channelToScores.Add(channelID, scores);
         }
 
-        class TrackStorage
-        {
-            public Dictionary<ulong, BanchoAPI.BanchoBestScore> PrevTopPlays { get; set; } = new();
-
-            public List<ulong> Channels { get; set; } = new List<ulong>();
-
-            public string Username { get; set; }
-
-            public void Update(OsuModule osuModule)
-            {
-                try
-                {
-                    List<BanchoAPI.BanchoBestScore> topPlays = osuModule.banchoAPI.GetBestPlays(Username, 100);
-                    Logger.Log($"Polled {topPlays.Count} top plays from {Username}", LogLevel.Info);
-
-                    if (topPlays.Count == 0)
-                        return;
-
-                    if (PrevTopPlays.Count == 0)
-                    {
-                        foreach (var item in topPlays)
-                        {
-                            PrevTopPlays.Add(item.ScoreID, item);
-                        }
-                        return;
-                    }
-
-                    List<(int placement, BanchoAPI.BanchoBestScore score)> diff = new();
-
-                    for (int i = 0; i < topPlays.Count; i++)
-                    {
-                        var item = topPlays[i];
-                        if (!PrevTopPlays.ContainsKey(item.ScoreID))
-                        {
-                            PrevTopPlays.Add(item.ScoreID, item);
-                            diff.Add((i + 1, item));
-                        }
-                    }
-
-                    if (diff.Count() == 0)
-                        return;
-
-                    List<OsuScore> scores = new List<OsuScore>();
-
-                    foreach (var rup in diff)
-                    {
-                        OsuScore score = new OsuScore(BeatmapManager.GetBeatmap(rup.score.BeatmapID), rup.score);
-                        score.Placement = rup.placement;
-                        
-                        scores.Add(score);
-                    }
-
-                    for (int i = 0; i < Channels.Count; i++)
-                    {
-                        var channel = (CoreModule.Client.GetChannel(Channels[i]) as ISocketMessageChannel);
-
-                        osuModule.RememberScores(channel.Id, scores);
-
-                        Pages pages = osuModule.CreateScorePages(scores, $"New osu! {OsuGamemode.Standard} top plays from {Username}");
-
-                        PagesHandler.SendPages(channel, pages);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log($"Exception when updating tracking for <{Username}>");
-                    Logger.Log(ex.StackTrace, LogLevel.Error);
-                }
-            }
-        }
-
-        Dictionary<string, TrackStorage> trackedUsers = Utils.Load<Dictionary<string, TrackStorage>>("TrackedUsers.json");
-
         public OsuModule()
         {
-            AddCMD("Enable the use of '.' and ',' in place of >rs and >c", (sMsg, buffer) =>
-            {
-                CoreModule.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
-                {
-                    profile.IsLazy = true;
-                });
-
-                sMsg.Channel.SendMessageAsync("You can now use lazy commands.");
-            }, ".iamlazy");
-
-            AddCMD("Disable '.' and ','", (sMsg, buffer) =>
-            {
-                CoreModule.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
-                {
-                    profile.IsLazy = false;
-                });
-                sMsg.Channel.SendMessageAsync("You can now __no longer__ use lazy commands.");
-            }, ".iamnotlazy");
-
+            /*
             AddCMD("Diplays server leaderboard for map", (sMsg, buffer) =>
             {
                 var users = sMsg.Channel.GetUsersAsync().FlattenAsync().GetAwaiter().GetResult();
@@ -333,7 +258,12 @@ namespace CirclesBot
                 List<OsuScore> allScores = new List<OsuScore>();
                 foreach (var user in users)
                 {
-                    string workingOsuUser = CoreModule.GetModule<SocialModule>().GetProfile(user.Id).OsuUsername;
+                    var profile = CoreModule.GetModule<SocialModule>().GetProfile(user.Id);
+
+                    if (profile == null)
+                        continue;
+
+                    string workingOsuUser = profile.OsuUsername;
 
                     if (string.IsNullOrEmpty(workingOsuUser))
                         continue;
@@ -402,142 +332,105 @@ namespace CirclesBot
 
                 PagesHandler.SendPages(sMsg.Channel, pages);
             }, ".leaderboard", ".lb");
+            */
 
-            new Thread(() =>
+            AddCMD("Display map leaderboard", (sMsg, buffer) =>
             {
-                Stopwatch sw = Stopwatch.StartNew();
-                while (true)
+                OsuGamemode mode = OsuGamemode.VANILLA_OSU;
+
+                if (buffer.HasParameter("-mania"))
+                    mode = OsuGamemode.VANILLA_MANIA;
+                else if (buffer.HasParameter("-taiko"))
+                    mode = OsuGamemode.VANILLA_TAIKO;
+                else if (buffer.HasParameter("-catch"))
+                    mode = OsuGamemode.VANILLA_CATCH;
+                else if (buffer.HasParameter("-ctb"))
+                    mode = OsuGamemode.VANILLA_CATCH;
+                else if (buffer.HasParameter("-rx") || buffer.HasParameter("-relax"))
+                    mode = OsuGamemode.RELAX_OSU;
+                else if (buffer.HasParameter("-ap"))
+                    mode = OsuGamemode.AUTOPILOT_OSU;
+
+                ulong? beatmapID = ParseBeatmapUrl(sMsg, buffer);
+
+                int? indexToCheck = buffer.GetInt();
+
+                bool sortByPP = buffer.HasParameter("-pp");
+                bool sortByAcc = buffer.HasParameter("-acc");
+
+                bool sortByLowestMisscount = buffer.HasParameter("-miss");
+
+                bool sortByCombo = buffer.HasParameter("-combo");
+
+                Mods mods = Utils.StringToMod(buffer.GetRemaining());
+
+                string username = DecipherOsuUsername(sMsg, buffer);
+
+                if (beatmapID.Value == 0 || !beatmapID.HasValue)
                 {
-                    Thread.Sleep(1);
-                    if (CoreModule.Client.ConnectionState != ConnectionState.Connected)
-                        continue;
-
-                    for (int i = 0; i < trackedUsers.Count; i++)
+                    if (channelToScores.TryGetValue(sMsg.Channel.Id, out List<OsuScore> aScores) == false)
                     {
-                        var user = trackedUsers.ElementAt(i);
-
-                        user.Value.Update(this);
-                        Thread.Sleep(1000);
-                    }
-
-                    if(sw.ElapsedMilliseconds > 50000)
-                    {
-                        Utils.Benchmark(() =>
-                        {
-                            trackedUsers.Save("TrackedUsers.json");
-                        }, "Saving tracked users", LogLevel.Success);
-                        sw.Restart();
-                    }
-                }
-            }).Start();
-
-            Commands.Add(new Command("Track your or someone elses top scores for osu! standard", (sMsg, buffer) =>
-            {
-                if (sMsg.Author.Id != CoreModule.Config.BotOwnerID)
-                {
-                    if (!(sMsg.Author as SocketGuildUser).GuildPermissions.Administrator)
-                    {
-                        sMsg.Channel.SendMessageAsync("This command requires admin perms.");
+                        sMsg.Channel.SendMessageAsync("No beatmap found in conversation");
                         return;
                     }
+                    if (indexToCheck == null)
+                        indexToCheck = 0;
+
+                    beatmapID = aScores[(indexToCheck.Value - 1).Clamp(0, aScores.Count - 1)].BeatmapID;
                 }
 
-                bool remove = buffer.HasParameter("remove");
-                bool add = buffer.HasParameter("add");
-
-                bool list = false;
-                
-                if(!add && !remove)
-                    list = buffer.HasParameter("list");
-
-                if(!remove && !add && !list)
+                try
                 {
-                    sMsg.Channel.SendMessageAsync("Possible Options are: ```.track add <user>\n.track remove <user>\n.track list```");
-                    return;
-                }
+                    var leaderboard = yl3API.GetScores(beatmapID.Value, 100, mode);
 
-                if (list)
-                {
-                    StringBuilder builder = new StringBuilder();
-                    builder.Append($"**Tracked users in this channel:**\n");
-                    for (int i = 0; i < trackedUsers.Count; i++)
+                    if(leaderboard.scores?.Count() == 0)
                     {
-                        var t = trackedUsers.ElementAt(i);
-                        for (int k = 0; k < t.Value.Channels.Count; k++)
-                        {
-                            if(t.Value.Channels[k] == sMsg.Channel.Id)
-                            {
-                                builder.Append($"`{t.Key}`\n");
-                            }
-                        }
+                        sMsg.Channel.SendMessageAsync($"No scores on **{beatmapID}** found");
+                        return;
                     }
-                    sMsg.Channel.SendMessageAsync(builder.ToString());
-                    return;
-                }
 
-                string userToCheck = DecipherOsuUsername(sMsg, buffer);
+                    List<OsuScore> scores = new List<OsuScore>();
 
-                string key = userToCheck.ToLower();
+                    string beatmap = BeatmapManager.GetBeatmap(beatmapID.Value);
 
-                if (userToCheck == null)
-                {
-                    sMsg.Channel.SendMessageAsync("I could not find someone to track based on your input");
-                    return;
-                }
-
-                if (!trackedUsers.ContainsKey(key))
-                    trackedUsers.Add(key, new TrackStorage() { Username = userToCheck });
-
-                if (trackedUsers[key].Channels.Contains(sMsg.Channel.Id))
-                {
-                    if (remove)
+                    foreach (var item in leaderboard.scores)
                     {
-                        trackedUsers[key].Channels.Remove(sMsg.Channel.Id);
-                        sMsg.Channel.SendMessageAsync($"Removed {userToCheck} tracking from this channel.");
-
-                        if (trackedUsers[key].Channels.Count == 0)
-                            trackedUsers.Remove(key);
-
-                        Utils.Save(trackedUsers, "TrackedUsers.json");
+                        scores.Add(new OsuScore(beatmap, item, beatmapID.Value));
                     }
-                    else
-                        sMsg.Channel.SendMessageAsync($"Already tracking top plays for {userToCheck} in this channel.");
 
-                    return;
-                } else if (remove)
+                    Pages pages = CreateScorePages(scores, $"{mode.ToString()} Leaderboard for {scores[0].SongName} - [{scores[0].DifficultyName}]", true, username);
+
+                    PagesHandler.SendPages(sMsg.Channel, pages);
+                }
+                catch (Exception ex)
                 {
-                    sMsg.Channel.SendMessageAsync($"{userToCheck} is not tracked in this channel...?");
-                    return;
+                    Logger.Log(ex.StackTrace, LogLevel.Error);
+                    sMsg.Channel.SendMessageAsync($":warning: **{ex.Message}**");
                 }
 
-                trackedUsers[key].Channels.Add(sMsg.Channel.Id);
-                Utils.Save(trackedUsers, "TrackedUsers.json");
-
-                sMsg.Channel.SendMessageAsync($"Now tracking top plays for `{userToCheck}` in <{sMsg.Channel.Name}>");
-            }, ".track"));
-
+            }, ".lb", ".leaderboard");
+            
             //Optimized
             AddCMD("Display recent scores for you or someone else", (sMsg, buffer) =>
             {
-                if (sMsg.Content.Equals("."))
-                {
-                    if (CoreModule.GetModule<SocialModule>().GetProfile(sMsg.Author.Id).IsLazy == false)
-                        return;
-                }
-
-                OsuGamemode mode = OsuGamemode.Standard;
+                OsuGamemode mode = OsuGamemode.VANILLA_OSU;
 
                 if (buffer.HasParameter("-mania"))
-                    mode = OsuGamemode.Mania;
+                    mode = OsuGamemode.VANILLA_MANIA;
                 else if (buffer.HasParameter("-taiko"))
-                    mode = OsuGamemode.Taiko;
+                    mode = OsuGamemode.VANILLA_TAIKO;
                 else if (buffer.HasParameter("-catch"))
-                    mode = OsuGamemode.Catch;
+                    mode = OsuGamemode.VANILLA_CATCH;
                 else if (buffer.HasParameter("-ctb"))
-                    mode = OsuGamemode.Catch;
+                    mode = OsuGamemode.VANILLA_CATCH;
+                else if (buffer.HasParameter("-rx") || buffer.HasParameter("-relax"))
+                    mode = OsuGamemode.RELAX_OSU;
+                else if (buffer.HasParameter("-ap"))
+                    mode = OsuGamemode.AUTOPILOT_OSU;
 
                 bool showList = buffer.HasParameter("-l");
-                bool isRTCircles = buffer.HasParameter("-rt");
+                bool showBest = buffer.HasParameter("-b");
+
                 string userToCheck = DecipherOsuUsername(sMsg, buffer);
 
                 if (userToCheck == null)
@@ -547,61 +440,66 @@ namespace CirclesBot
 
                 try
                 {
-                    List<BanchoAPI.BanchoRecentScore> recentUserPlays = null;
-                    if (isRTCircles == false)
-                    {
-                        recentUserPlays = banchoAPI.GetRecentPlays(userToCheck, showList ? 10 : 1, mode);
+                    List<OsuScore> scores = new List<OsuScore>();
 
-                        if (recentUserPlays.Count == 0)
+                    if (showBest)
+                    {
+                        var best = yl3API.GetBestPlays(userToCheck, 100, mode);
+
+                        if (best.scores?.Count > 0)
+                        {
+                            var bestScoresSortedByPlayTime = new List<Score>(best.scores);
+                            bestScoresSortedByPlayTime.Sort((x, y) => DateTime.Compare(y.play_time, x.play_time));
+
+                            var recentBestScore = bestScoresSortedByPlayTime[0];
+
+                            OsuScore score = new OsuScore(BeatmapManager.GetBeatmap((ulong)recentBestScore.beatmap.id), recentBestScore, best.player.id);
+                            score.Placement = best.scores.IndexOf(recentBestScore) + 1;
+
+                            scores.Add(score);
+                        }
+                        else
+                        {
+                            sMsg.Channel.SendMessageAsync($"**{userToCheck}** does not have any top plays!");
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        var recentScores = yl3API.GetRecentPlays(userToCheck, showList ? 10 : 1, mode);
+
+                        if(recentScores.scores?.Count > 0)
+                        {
+                            foreach (var rup in recentScores.scores)
+                            {
+                                OsuScore score = new OsuScore(BeatmapManager.GetBeatmap((ulong)rup.beatmap.id), rup, recentScores.player.id);
+
+                                scores.Add(score);
+                            }
+                        }
+                        else
                         {
                             sMsg.Channel.SendMessageAsync($"**{userToCheck}** does not have any recent plays!");
                             return;
                         }
                     }
 
-                    List<OsuScore> scores = new List<OsuScore>();
-
-                    if (isRTCircles)
-                    {
-                        string score = File.ReadAllText(@"C:\Users\user\Desktop\CSharp\RTCircles\RTCircles\bin\Debug\net6.0\score.txt");
-
-                        string[] @params = score.Split('|');
-
-                        int c300 = int.Parse(@params[0]);
-                        int c100 = int.Parse(@params[1]);
-                        int c50 = int.Parse(@params[2]);
-                        int cMiss = int.Parse(@params[3]);
-                        int scor = int.Parse(@params[4]);
-                        int mod = int.Parse(@params[5]);
-                        int maxCombo = int.Parse(@params[6]);
-                        string rankLetter = @params[7];
-                        ulong beatmapID = ulong.Parse(@params[8]);
-
-                        scores.Add(new OsuScore((Mods)mod, scor, c300, c100, c50, cMiss, maxCombo, rankLetter, BeatmapManager.GetBeatmap(beatmapID), beatmapID));
-                    }
-                    else
-                    {
-                        foreach (var rup in recentUserPlays)
-                        {
-                            OsuScore score = new OsuScore(BeatmapManager.GetBeatmap(rup.BeatmapID), rup);
-
-                            scores.Add(score);
-                        }
-                    }
-
                     RememberScores(sMsg.Channel.Id, scores);
 
-                    Pages pages = CreateScorePages(scores, $"Nye osu-{mode.ToString().ToLower()} scores sat af {scores[0].Username ?? userToCheck}");
+                    string bestName = showBest ? "bedste " : "";
+
+                    Pages pages = CreateScorePages(scores, $"Seneste {bestName}{mode.ToString()} scores sat af {scores[0].Username ?? userToCheck}");
 
                     PagesHandler.SendPages(sMsg.Channel, pages);
                 }
                 catch (Exception ex)
                 {
                     Logger.Log(ex.StackTrace, LogLevel.Error);
-                    sMsg.Channel.SendMessageAsync("uh oh something happend check console");
+                    sMsg.Channel.SendMessageAsync($":warning: **{ex.Message}**");
                 }
-            }, ".rs", ".recent", ".");
-
+            }, ".rs", ".recent");
+            
+            /*
             AddCMD("Displays yours or someone elses scores on a specific map", (sMsg, buffer) =>
             {
                 bool ripple = buffer.HasParameter("-ripple");
@@ -654,12 +552,25 @@ namespace CirclesBot
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
             }, ".scores", ".sc");
-
+            */
             AddCMD("Displays yours or someone elses scores", (sMsg, buffer) =>
             {
-                bool showRecent = buffer.HasParameter("-r");
+                OsuGamemode mode = OsuGamemode.VANILLA_OSU;
 
-                bool isRipple = buffer.HasParameter("-ripple");
+                if (buffer.HasParameter("-mania"))
+                    mode = OsuGamemode.VANILLA_MANIA;
+                else if (buffer.HasParameter("-taiko"))
+                    mode = OsuGamemode.VANILLA_TAIKO;
+                else if (buffer.HasParameter("-catch"))
+                    mode = OsuGamemode.VANILLA_CATCH;
+                else if (buffer.HasParameter("-ctb"))
+                    mode = OsuGamemode.VANILLA_CATCH;
+                else if (buffer.HasParameter("-rx") || buffer.HasParameter("-relax"))
+                    mode = OsuGamemode.RELAX_OSU;
+                else if (buffer.HasParameter("-ap"))
+                    mode = OsuGamemode.AUTOPILOT_OSU;
+
+                bool showRecent = buffer.HasParameter("-r");
 
                 bool justCheckPPCountPlays = buffer.HasParameter("-g");
 
@@ -678,20 +589,15 @@ namespace CirclesBot
 
                 try
                 {
-                    List<BanchoAPI.BanchoBestScore> bestPlaysSortedByPP = banchoAPI.GetBestPlays(userToCheck, 100);
-                    bestPlaysSortedByPP.Sort((x, y) => y.PP.CompareTo(x.PP));
+                    var bestPlays = yl3API.GetBestPlays(userToCheck, 100, mode);
 
-                    List<BanchoAPI.BanchoBestScore> bestPlaysSortedByDate = new List<BanchoAPI.BanchoBestScore>(bestPlaysSortedByPP);
-                    bestPlaysSortedByDate.Sort((x, y) => DateTime.Compare(y.DateOfPlay, x.DateOfPlay));
-
-                    List<BanchoAPI.BanchoBestScore> bestPlaysSortedByAcc = new List<BanchoAPI.BanchoBestScore>(bestPlaysSortedByPP);
-                    bestPlaysSortedByAcc.Sort((x, y) => y.Accuracy.CompareTo(x.Accuracy));
-
-                    if (bestPlaysSortedByPP.Count == 0)
+                    if(bestPlays.scores?.Count() == 0)
                     {
-                        sMsg.Channel.SendMessageAsync($"**{userToCheck} doesn't have any top plays** :face_with_raised_eyebrow:");
+                        sMsg.Channel.SendMessageAsync($"**{userToCheck}** does not have any top plays in {mode}");
                         return;
                     }
+
+                    var bestPlaysSortedByPP = bestPlays.scores;
 
                     if (justCheckPPCountPlays)
                     {
@@ -700,43 +606,48 @@ namespace CirclesBot
                             int count = 0;
                             foreach (var item in bestPlaysSortedByPP)
                             {
-                                if (item.PP >= ppToCheck.Value)
+                                if (item.pp >= ppToCheck.Value)
                                     count++;
                             }
 
                             sMsg.Channel.SendMessageAsync($"`{userToCheck}` **has {count} plays worth more than {ppToCheck.Value.ToString("F")}PP**");
-                            return;
                         }
                         else
-                        {
-                            sMsg.Channel.SendMessageAsync($"Ex: >osutop -g 69");
-                            return;
-                        }
+                            sMsg.Channel.SendMessageAsync($"```.osutop -g 69 <optional_name>``` will show you how many plays exceeds 69 pp value for you or someone else");
+
+                        return;
+                    }
+
+                    //bestPlaysSortedByPP.Sort((x, y) => y.PP.CompareTo(x.PP));
+
+                    List<Score> bestPlaysBySorting = new(bestPlaysSortedByPP);
+
+                    if (sortByAcc)
+                    {
+                        bestPlaysBySorting.Sort((x, y) => y.acc.CompareTo(x.acc));
+                    }
+                    else if (showRecent)
+                    {
+                        bestPlaysBySorting.Sort((x, y) => DateTime.Compare(y.play_time, x.play_time));
+                    }
+                    else
+                    {
+                        //Lmao do nothing kek
                     }
 
                     List<OsuScore> scores = new List<OsuScore>();
+
+                    const int MAX_SCORES_SHOWN = 15;
+
                     for (int i = 0; i < bestPlaysSortedByPP.Count; i++)
                     {
-                        if (i >= 10)
+                        if (i >= MAX_SCORES_SHOWN)
                             break;
 
-                        OsuScore score;
+                        OsuScore score = new OsuScore(BeatmapManager.GetBeatmap((ulong)bestPlaysBySorting[i].beatmap.id), bestPlaysBySorting[i], bestPlays.player.id);
+                        //This is redudant when sorting by pp since the placement is already in order but i dont care
+                        score.Placement = bestPlaysSortedByPP.IndexOf(bestPlaysBySorting[i]) + 1;
 
-                        if (sortByAcc)
-                        {
-                            score = new OsuScore(BeatmapManager.GetBeatmap(bestPlaysSortedByAcc[i].BeatmapID), bestPlaysSortedByAcc[i]);
-                            score.Placement = bestPlaysSortedByPP.IndexOf(bestPlaysSortedByAcc[i]) + 1;
-                        }
-                        else if (showRecent)
-                        {
-                            score = new OsuScore(BeatmapManager.GetBeatmap(bestPlaysSortedByDate[i].BeatmapID), bestPlaysSortedByDate[i]);
-                            score.Placement = bestPlaysSortedByPP.IndexOf(bestPlaysSortedByDate[i]) + 1;
-                        }
-                        else
-                        {
-                            score = new OsuScore(BeatmapManager.GetBeatmap(bestPlaysSortedByPP[i].BeatmapID), bestPlaysSortedByPP[i]);
-                            score.Placement = i + 1;
-                        }
                         scores.Add(score);
                     }
 
@@ -745,17 +656,105 @@ namespace CirclesBot
                     string recentText = showRecent ? "Recent " : "";
                     recentText += sortByAcc ? "Sorted By Accuracy " : "";
 
-                    Pages pages = CreateScorePages(scores, $"{recentText}Top osu! Scores For {userToCheck}");
+                    Pages pages = CreateScorePages(scores, $"{recentText}Top {mode} Scores For {userToCheck}");
 
                     PagesHandler.SendPages(sMsg.Channel, pages);
                 }
                 catch (Exception ex)
                 {
                     Logger.Log(ex.StackTrace, LogLevel.Error);
-                    sMsg.Channel.SendMessageAsync("uh oh something happend check console");
+                    sMsg.Channel.SendMessageAsync($":warning: **{ex.Message}**");
                 }
             }, ".top", ".osutop");
 
+            AddCMD("View YL3 Leaderboard", (sMsg, buffer) =>
+            {
+                OsuGamemode mode = OsuGamemode.VANILLA_OSU;
+
+                if (buffer.HasParameter("-mania"))
+                    mode = OsuGamemode.VANILLA_MANIA;
+                else if (buffer.HasParameter("-taiko"))
+                    mode = OsuGamemode.VANILLA_TAIKO;
+                else if (buffer.HasParameter("-catch"))
+                    mode = OsuGamemode.VANILLA_CATCH;
+                else if (buffer.HasParameter("-ctb"))
+                    mode = OsuGamemode.VANILLA_CATCH;
+                else if (buffer.HasParameter("-rx") || buffer.HasParameter("-relax"))
+                    mode = OsuGamemode.RELAX_OSU;
+                else if (buffer.HasParameter("-ap"))
+                    mode = OsuGamemode.AUTOPILOT_OSU;
+
+                string sortMode = "pp";
+
+                if (buffer.HasParameter("-acc"))
+                    sortMode = "acc";
+                else if (buffer.HasParameter("-score"))
+                    sortMode = "tscore";
+
+                try
+                {
+                    var leaderboard = yl3API.GetLeaderboard(limit: 100, mode: mode, sortMode: sortMode, country: null);
+
+                    if (leaderboard.leaderboard?.Count == 0)
+                    {
+                        sMsg.Channel.SendMessageAsync("Ok du burde aldrig se den her besked, hvis du ser den her besked betyder det at leaderboardet er tomt. GG <@591339926017146910>");
+                        return;
+                    }
+
+                    Pages pages = new Pages();
+                    int countOnPage = 1;
+                    List<EmbedBuilder> builders = new List<EmbedBuilder>();
+
+                    void add(string text, string title)
+                    {
+                        builders.Add(new EmbedBuilder());
+
+                        builders.Last().WithDescription(text);
+                        builders.Last().WithAuthor(title, LOGO_URL, "https://yl3.dk");
+                    }
+
+                    string kek = "";
+                    int count = 1;
+                    foreach (var player in leaderboard.leaderboard)
+                    {
+                        //kek += $"**#{count++}** :flag_{player.country}: {player.name} -> `pp:` **{player.pp}** `acc:` **{player.acc:F2}%** `plays:` **{player.plays}**\n";
+                        kek += $"`#{count++}` :flag_{player.country}: **{player.name}**\n`pp:` **{player.pp}** `acc:` **{player.acc:F2}%** `plays:` **{player.plays}**";
+
+                        if (sortMode == "tscore") kek += $" `score:` **{player.tscore/1_000_000.0:F0} million**";
+
+                        kek += "\n";
+
+                        if (countOnPage++ == 10)
+                        {
+                            countOnPage = 1;
+
+                            add(kek, $"YL3 {mode} Leaderboard sorted by {sortMode}");
+
+                            kek = "";
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(kek))
+                        add(kek, $"YL3 {mode} Leaderboard sorted by {sortMode}");
+
+
+                    for (int i = 0; i < builders.Count(); i++)
+                    {
+                        builders[i].WithFooter($"Page {i + 1}/{builders.Count()}");
+                        pages.AddEmbed(builders[i].Build());
+                    }
+                    
+                    sMsg.Channel.SendPages(pages);
+
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(ex.StackTrace, LogLevel.Error);
+                    sMsg.Channel.SendMessageAsync($":warning: **{ex.Message}**");
+                }
+            }, ".slb", ".serverlb");
+
+            /*
             AddCMD("Displays the PP for an fc with a given accuracy and mods", (sMsg, buffer) =>
             {
                 buffer.Discard("%");
@@ -834,16 +833,24 @@ namespace CirclesBot
                     sMsg.Channel.SendMessageAsync("uh oh something happend check console");
                 }
             }, ".pp", ".fc");
+            */
 
             AddCMD("Compare yours or someone elses scores", (sMsg, buffer) =>
             {
-                if (sMsg.Content.StartsWith(","))
-                {
-                    if(CoreModule.GetModule<SocialModule>().GetProfile(sMsg.Author.Id).IsLazy == false)
-                        return;
-                }
+                OsuGamemode mode = OsuGamemode.VANILLA_OSU;
 
-                bool isRipple = buffer.HasParameter("-ripple");
+                if (buffer.HasParameter("-mania"))
+                    mode = OsuGamemode.VANILLA_MANIA;
+                else if (buffer.HasParameter("-taiko"))
+                    mode = OsuGamemode.VANILLA_TAIKO;
+                else if (buffer.HasParameter("-catch"))
+                    mode = OsuGamemode.VANILLA_CATCH;
+                else if (buffer.HasParameter("-ctb"))
+                    mode = OsuGamemode.VANILLA_CATCH;
+                else if (buffer.HasParameter("-rx") || buffer.HasParameter("-relax"))
+                    mode = OsuGamemode.RELAX_OSU;
+                else if (buffer.HasParameter("-ap"))
+                    mode = OsuGamemode.AUTOPILOT_OSU;
 
                 int? indexToCheck = buffer.GetInt();
 
@@ -854,32 +861,20 @@ namespace CirclesBot
                 if (userToCheck == null)
                     return;
 
-                if (indexToCheck == null)
+                if (!channelToScores.TryGetValue(sMsg.Channel.Id, out List<OsuScore> channelScores))
                 {
-                    if (!channelToScores.TryGetValue(sMsg.Channel.Id, out List<OsuScore> scores))
-                    {
-                        sMsg.Channel.SendMessageAsync("No beatmap found in conversation");
-                        return;
-                    }
-                    else
-                    {
-                        beatmapID = scores[0].BeatmapID;
-                    }
+                    sMsg.Channel.SendMessageAsync("No beatmap found in conversation");
+                    return;
                 }
+
+                if (indexToCheck == null)
+                    beatmapID = channelScores[0].BeatmapID;
                 else
                 {
-                    if (!channelToScores.TryGetValue(sMsg.Channel.Id, out List<OsuScore> scores))
-                    {
-                        sMsg.Channel.SendMessageAsync("No beatmap top found in conversation");
-                        return;
-                    }
-                    else
-                    {
-                        indexToCheck = Math.Max(indexToCheck.Value - 1, 0);
-                        var score = scores[Math.Min(scores.Count - 1, indexToCheck.Value)];
+                    indexToCheck = Math.Max(indexToCheck.Value - 1, 0);
+                    var score = channelScores[Math.Min(channelScores.Count - 1, indexToCheck.Value)];
 
-                        beatmapID = score.BeatmapID;
-                    }
+                    beatmapID = score.BeatmapID;
                 }
 
                 EmbedBuilder embedBuilder = new EmbedBuilder();
@@ -888,21 +883,36 @@ namespace CirclesBot
 
                 try
                 {
-                    List<BanchoAPI.BanchoScore> userPlays = banchoAPI.GetScores(userToCheck, beatmapID);
+                    var beatmapPlays = yl3API.GetScores(beatmapID, 100, mode);
 
-                    if (userPlays.Count == 0)
+                    if (beatmapPlays.scores?.Count == 0)
                     {
-                        sMsg.Channel.SendMessageAsync($"**{userToCheck}** does not have any plays on this map!");
+                        sMsg.Channel.SendMessageAsync($"Beatmap does not have any plays on it");
+                        return;
+                    }
+
+                    var user = yl3API.GetUser(userToCheck);
+
+                    if(user.player == null)
+                    {
+                        sMsg.Channel.SendMessageAsync($"**{userToCheck}** does not exist");
                         return;
                     }
 
                     List<OsuScore> scores = new List<OsuScore>();
 
-                    for (int i = 0; i < userPlays.Count; i++)
-                    {
-                        var play = userPlays[i];
+                    string beatmap = BeatmapManager.GetBeatmap(beatmapID);
 
-                        scores.Add(new OsuScore(BeatmapManager.GetBeatmap(beatmapID), play, beatmapID));
+                    foreach (var score in beatmapPlays.scores)
+                    {
+                        if(score.userid == user.player.info.id)
+                            scores.Add(new OsuScore(beatmap, score, beatmapID));
+                    }
+
+                    if(scores.Count == 0)
+                    {
+                        sMsg.Channel.SendMessageAsync($"**{userToCheck}** does not have any plays on **{channelScores[0].ArtistName} - {channelScores[0].SongName} [{channelScores[0].DifficultyName}]**");
+                        return;
                     }
 
                     Pages pages = CreateScorePages(scores, $"Scores for {userToCheck} on {scores[0].SongName} [{scores[0].DifficultyName}]");
@@ -913,15 +923,26 @@ namespace CirclesBot
                 {
                     Logger.Log(ex.Message, LogLevel.Warning);
                     Logger.Log(ex.StackTrace, LogLevel.Error);
-                    sMsg.Channel.SendMessageAsync("uh oh something happend check console");
+                    sMsg.Channel.SendMessageAsync($":warning: **{ex.Message}**");
                 }
-            }, ".c", ".compare", ",");
-
-            AddCMD("Shows your osu profile or someone elses in the respected gamemode", (sMsg, buffer) =>
+            }, ".c", ".compare");
+            
+            AddCMD("Shows your osu profile or someone elses in the respected gamemode with -flag", (sMsg, buffer) =>
             {
-                Enum.TryParse(buffer.TriggerText.Remove(0, 1), ignoreCase: true, out OsuGamemode mode);
+                OsuGamemode mode = OsuGamemode.VANILLA_OSU;
 
-                bool isRipple = buffer.HasParameter("-ripple");
+                if (buffer.HasParameter("-mania"))
+                    mode = OsuGamemode.VANILLA_MANIA;
+                else if (buffer.HasParameter("-taiko"))
+                    mode = OsuGamemode.VANILLA_TAIKO;
+                else if (buffer.HasParameter("-catch"))
+                    mode = OsuGamemode.VANILLA_CATCH;
+                else if (buffer.HasParameter("-ctb"))
+                    mode = OsuGamemode.VANILLA_CATCH;
+                else if (buffer.HasParameter("-rx") || buffer.HasParameter("-relax"))
+                    mode = OsuGamemode.RELAX_OSU;
+                else if (buffer.HasParameter("-ap"))
+                    mode = OsuGamemode.AUTOPILOT_OSU;
 
                 string userToCheck = DecipherOsuUsername(sMsg, buffer);
 
@@ -930,53 +951,94 @@ namespace CirclesBot
 
                 try
                 {
-                    var users = banchoAPI.GetUser(userToCheck, mode);
+                    var player = yl3API.GetUser(userToCheck).player;
 
-                    if(users.Count < 1)
+                    if(player == null)
                     {
                         sMsg.Channel.SendMessageAsync("This user doesn't exist.");
                         return;
                     }
 
-                    var user = users.First();
-                    var topPlays = banchoAPI.GetBestPlays(userToCheck, 100, mode);
-                    topPlays.Sort((x, y) => x.PP.CompareTo(y.PP));
+                    var topPlays = yl3API.GetBestPlays(userToCheck, 100, mode);
+                    //topPlays.Sort((x, y) => x.PP.CompareTo(y.PP));
 
-                    EmbedBuilder embedBuilder = CreateProfileEmbed(new OsuProfile(user), topPlays);
+                    YL3API.PlayerStat playerStat = null;
 
-                    embedBuilder.WithAuthor($"{mode} Profile For {user.Username}", BanchoAPI.GetFlagImageUrl(user.Country));
+                    switch (mode)
+                    {
+                        case OsuGamemode.VANILLA_OSU:
+                            playerStat = player.stats._0;
+                            break;
+                        case OsuGamemode.VANILLA_TAIKO:
+                            playerStat = player.stats._1;
+                            break;
+                        case OsuGamemode.VANILLA_CATCH:
+                            playerStat = player.stats._2;
+                            break;
+                        case OsuGamemode.VANILLA_MANIA:
+                            playerStat = player.stats._3;
+                            break;
+                        case OsuGamemode.RELAX_OSU:
+                            playerStat = player.stats._4;
+                            break;
+                        case OsuGamemode.RELAX_TAIKO:
+                            playerStat = player.stats._5;
+                            break;
+                        case OsuGamemode.RELAX_CATCH:
+                            playerStat = player.stats._6;
+                            break;
+                        case OsuGamemode.RELAX_MANIA:
+                            break;
+                        case OsuGamemode.AUTOPILOT_OSU:
+                            playerStat = player.stats._8;
+                            break;
+                        case OsuGamemode.AUTOPILOT_TAIKO:
+                        case OsuGamemode.AUTOPILOT_CATCH:
+                        case OsuGamemode.AUTOPILOT_MANIA:
+                        default:
+                            break;
+                    }
 
-                    embedBuilder.WithThumbnailUrl(BanchoAPI.GetProfileImageUrl(user.ID.ToString()));
+                    if(playerStat == null)
+                    {
+                        sMsg.Channel.SendMessageAsync($"**{mode}** is not currently supported");
+                        return;
+                    }
+
+                    EmbedBuilder embedBuilder = CreateProfileEmbed(new OsuProfile(playerStat, player.info), topPlays.scores);
+
+                    embedBuilder.WithAuthor($"{mode} Profil For {player.info.name}", 
+                        iconUrl: YL3API.GetFlagImageUrl(player.info.country.ToUpper()),
+                        url: YL3API.GetProfileUrl(playerStat.id.ToString()));
+
+                    embedBuilder.WithThumbnailUrl(YL3API.GetProfileImageUrl(""));
 
                     sMsg.Channel.SendMessageAsync("", false, embedBuilder.Build());
                 }
                 catch (Exception ex)
                 {
                     Logger.Log(ex.StackTrace, LogLevel.Error);
-                    sMsg.Channel.SendMessageAsync("uh oh something happend check console");
+                    sMsg.Channel.SendMessageAsync($":warning: **{ex.Message}**");
                 }
-            }, ".osu", ".mania", ".catch", ".ctb", ".taiko");
-
+            }, ".osu");
+            
             AddCMD("Links your osu! account to the bot", (sMsg, buffer) =>
             {
                 string username = buffer.GetRemaining();
-                var users = banchoAPI.GetUser(username, OsuGamemode.Standard);
-
-                if(users.Count < 1)
+                var player = yl3API.GetUser(username).player;
+                if(player == null)
                 {
                     sMsg.Channel.SendMessageAsync("This user doesn't exist");
+                    return;
                 }
-                else
-                {
-                    var user = users.First();
+
                     CoreModule.GetModule<SocialModule>().ModifyProfile(sMsg.Author.Id, profile =>
                     {
-                        profile.OsuUsername = user.Username;
-                        profile.CountryFlag = user.Country;
+                        profile.OsuUsername = player.info.name;
+                        profile.CountryFlag = player.info.country;
                     });
 
-                    sMsg.Channel.SendMessageAsync("Your osu user has been set to: " + user.Username);
-                }
+                    sMsg.Channel.SendMessageAsync($"Your osu! username has been set to **{player.info.name}**");
             }, ".osuset", ".link");
 
             Commands.Add(new Command("Use this command if a map is out of sync with bots version", (sMsg, buffer) =>

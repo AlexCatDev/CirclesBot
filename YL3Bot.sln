@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30011.22
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CirclesBot", "CirclesBot\CirclesBot.csproj", "{2A998998-F97E-4CA2-8764-D2974EEFCF2C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YL3Bot", "CirclesBot\YL3Bot.csproj", "{2A998998-F97E-4CA2-8764-D2974EEFCF2C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

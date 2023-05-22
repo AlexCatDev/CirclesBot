@@ -189,34 +189,33 @@ namespace CirclesBot
 
         public static string GetEmoteForRankLetter(string rankLetter)
         {
+            //
             switch (rankLetter)
             {
                 case "F":
-                    return "<:RankF:847994614370795570>";
+                    return "<:FRank:981017522889424938>";
                 case "D":
-                    return "<:DRank:953968398012911636>";
+                    return "<:DRank:981017523103363102>";
                 case "C":
-                    return "<:CRank:953968398054858762>";
+                    return "<:CRank:981017523136909343>";
                 case "B":
-                    return "<:BRank:953968398147133460>";
+                    return "<:BRank:981017523300470824>";
                 case "A":
-                    return "<:ARank:953968398017134592>";
+                    return "<:ARank:981017522855878717>";
                 case "S":
-                    return "<:SRank:953968398021300234>";
+                    return "<:SRank:981017522704883753>";
                 case "X":
-                    return "<:SSRank:953968330098737162>";
+                    return "<:SSRank:981017522897821748>";
                 case "SH":
-                    return "<:SHRank:953968398096797706>";
+                    return "<:SHRank:981017523430510613>";
                 case "XH":
-                    return "<:SSHRank:953968398268764200>";
+                    return "<:SSHRank:981017523111747594>";
                 default:
                     return ":sunglasses:";
             }
         }
 
-        public static void Save<T>(this T t, string filename) => SaveSecure(t, filename);
-
-        public static void SaveSecure<T>(this T t, string filename)
+        public static void Save<T>(this T t, string filename)
         {
             string json = JsonConvert.SerializeObject(t, Formatting.Indented);
 
@@ -226,7 +225,7 @@ namespace CirclesBot
 
             //Write to a temporary file..
             File.WriteAllText(pathFileTmp, json);
-            
+
             //Move the temp file to the main file, overwriting it
             File.Move(pathFileTmp, pathFile, true);
         }

@@ -159,10 +159,10 @@ namespace CirclesBot
             while (true)
             {
                 double deltaTime = ((double)updateWatch.ElapsedTicks / Stopwatch.Frequency);
+                updateWatch.Restart();
 
                 OnUpdate?.Invoke(deltaTime);
 
-                updateWatch.Restart();
                 Thread.Sleep(1);
             }
         }
@@ -177,7 +177,7 @@ namespace CirclesBot
         {
             runTimeWatch.Start();
             Logger.Log($"[Bot Connect]\nUser={Client.CurrentUser.Username}", LogLevel.Success);
-            Client.SetGameAsync(".help // Everything corrupted, so your tracking lists are gone");
+            Client.SetGameAsync(".help [.rs .osutop .c .osu] (-rx -ap -mania -taiko -ctb) .link <username>");
             return Task.Delay(0);
         }
 
@@ -260,6 +260,8 @@ namespace CirclesBot
             }
             catch (Exception ex)
             {
+                s.Channel.SendMessageAsync("What:\n" + ex.Message);
+                /*
                 if (Config.DMOwnerOnError)
                 {
                     string error = $"An exception has been thrown when trying to handle a command!\n";
@@ -269,6 +271,7 @@ namespace CirclesBot
 
                     Client.GetUser(Config.BotOwnerID).SendMessageAsync(error);
                 }
+                */
 
                 Logger.Log($"An exception has been thrown when trying to handle a command!", LogLevel.Error);
                 Logger.Log($"User responsible: [{s.Author.Username}]@[{s.Author.Id}] What they wrote: [{s.Content}]\n", LogLevel.Info);
@@ -377,12 +380,11 @@ namespace CirclesBot
                 desc += $"Ram Usage: **{(Process.GetCurrentProcess().PrivateMemorySize64 / 1048576.0).ToString("F")} MB**\n";
                 desc += $"CPU Time: **{Utils.FormatTime(Process.GetCurrentProcess().TotalProcessorTime, ago: false)}**\n";
                 desc += $"GC: **0:** `{GC.CollectionCount(0)}` **1:** `{GC.CollectionCount(1)}` **2:** `{GC.CollectionCount(2)}`\n";
-                desc += $"Oppai Version: **{EZPP.GetVersion()}**\n";
                 desc += $"Ping: **{Client.Latency} MS**\n";
                 desc += $"Run-Time: **{Utils.FormatTime(runTimeWatch.Elapsed, ago: false)}**\n";
                 desc += $"Serving: **{Client.Guilds.Count} Guilds And {GetMemberCount()} Members**\n";
                 desc += $"Commands Handled: **{TotalCommandsHandled}**\n";
-                desc += $"Bancho API Calls: **{BanchoAPI.TotalAPICalls}**\n";
+                desc += $"Bancho API Calls: **{YL3API.TotalAPICalls}**\n";
                 desc += $"Loaded Modules: **{LoadedModules.Count}**\n";
 
                 embed.WithDescription(desc);

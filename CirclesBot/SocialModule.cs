@@ -88,7 +88,7 @@ namespace CirclesBot
         public DateTime LastCommand;
         public string OsuUsername = "";
         public string CountryFlag = "";
-        public OsuGamemode DefaultGamemode = OsuGamemode.Standard;
+        public OsuGamemode DefaultGamemode = OsuGamemode.VANILLA_OSU;
         public bool IsLazy;
         public uint PreferredColor;
         public bool WasModified;
@@ -147,12 +147,11 @@ namespace CirclesBot
                 {
                     profile = JsonConvert.DeserializeObject<DiscordProfile>(File.ReadAllText($"{DiscordProfileDirectory}/{discordID}"));
                 }
-                else
-                {
-                    //if not on disk create new
-                    profile = new DiscordProfile();
-                }
             }
+
+            if(profile == null)
+                profile = new DiscordProfile();
+
             modifyAction?.Invoke(profile);
             profile.WasModified = true;
             profileCache.TryAdd(discordID, profile);
@@ -193,6 +192,9 @@ namespace CirclesBot
 
                 foreach (var profile in profileCache)
                 {
+                    if (profile.Value == null)
+                        continue;
+
                     if (profile.Value.WasModified)
                     {
                         profile.Value.WasModified = false;
